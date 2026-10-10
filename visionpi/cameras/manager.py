@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import cv2
 import numpy as np
+
+from visionpi.config import AppConfig
+from visionpi.display.calibration import apply_eye_calibration
 
 from .sources import CameraSource, MockCameraSource, PiCameraSource, WiFiEyeSource
 
@@ -18,8 +21,9 @@ class CameraConfig:
 
 
 class CameraManager:
-    def __init__(self, config: CameraConfig) -> None:
+    def __init__(self, config: CameraConfig, app_config: AppConfig) -> None:
         self.config = config
+        self.app_config = app_config
         self.size = (config.width, config.height)
         self._sources: Dict[str, CameraSource] = {}
 
@@ -52,6 +56,17 @@ class CameraManager:
     def compose(self, source_name: str) -> np.ndarray:
         left_frame = self._safe_read("Left")
         right_frame = self._safe_read("Right")
+
+        left_frame = apply_eye_calibration(
+            left_frame,
+            self.app_config.calibration["left"],
+            (self.config.width, self.config.height),
+        )
+        right_frame = apply_eye_calibration(
+            right_frame,
+            self.app_config.calibration["right"],
+            (self.config.width, self.config.height),
+        )
 
         if source_name == "Left":
             return cv2.resize(left_frame, (self.config.width, self.config.height))

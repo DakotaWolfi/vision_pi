@@ -5,8 +5,10 @@ import argparse
 import cv2
 
 from . import __version__
+from .config import AppConfig
 from .cameras import CameraManager
 from .cameras.manager import CameraConfig
+from .display.calibration import apply_display_settings
 from .display import render_cursor, render_menu, render_status_bar
 from .menu import MENU_TREE, GestureTracker, MenuController
 from .system import StatusCollector
@@ -17,8 +19,14 @@ class VisionPiApp:
         self.width = width
         self.height = height
         self.camera_name = "Stereo"
+        self.config = AppConfig.load()
+        self.calibration_mode = False
+        self.calibration_eye = "left"
 
-        self.cameras = CameraManager(CameraConfig(width=width, height=height, wifi_eye_1=wifi_eye_1, wifi_eye_2=wifi_eye_2))
+        self.cameras = CameraManager(
+            CameraConfig(width=width, height=height, wifi_eye_1=wifi_eye_1, wifi_eye_2=wifi_eye_2),
+            app_config=self.config,
+        )
         self.menu = MenuController(MENU_TREE)
         self.gestures = GestureTracker((width, height))
         self.status = StatusCollector()
@@ -31,6 +39,67 @@ class VisionPiApp:
             return
         if selection.root == "CAMERAS":
             self.camera_name = selection.item
+        if selection.root == "DISPLAY":
+            if selection.item == "Zoom":
+                self.config.display.zoom += 0.1
+                if self.config.display.zoom > 1.5:
+                    self.config.display.zoom = 1.0
+                self.config.save()
+            elif selection.item == "Brightness":
+                self.config.display.brightness += 0.1
+                if self.config.display.brightness > 1.5:
+                    self.config.display.brightness = 0.8
+                self.config.save()
+            elif selection.item == "Night Mode":
+                self.config.display.night_mode = not self.config.display.night_mode
+                self.config.save()
+            elif selection.item == "Calibration":
+                self.calibration_mode = not self.calibration_mode
+
+    def _handle_calibration_key(self, key: int) -> None:
+        if not self.calibration_mode:
+            return
+        eye = self.config.calibration[self.calibration_eye]
+
+        if key == ord("e"):
+            self.calibration_eye = "right" if self.calibration_eye == "left" else "left"
+        elif key == ord("a"):
+            eye.offset_x -= 2
+        elif key == ord("d"):
+            eye.offset_x += 2
+        elif key == ord("w"):
+            eye.offset_y -= 2
+        elif key == ord("s"):
+            eye.offset_y += 2
+        elif key == ord("["):
+            eye.scale = max(0.7, eye.scale - 0.02)
+        elif key == ord("]"):
+            eye.scale = min(1.5, eye.scale + 0.02)
+        elif key == ord(","):
+            eye.rotation_deg -= 0.5
+        elif key == ord("."):
+            eye.rotation_deg += 0.5
+        elif key == ord("m"):
+            eye.mirror = not eye.mirror
+        elif key == ord("r"):
+            eye.crop.right += 1
+        elif key == ord("f"):
+            eye.crop.right = max(0, eye.crop.right - 1)
+        elif key == ord("t"):
+            eye.crop.top += 1
+        elif key == ord("g"):
+            eye.crop.top = max(0, eye.crop.top - 1)
+        elif key == ord("y"):
+            eye.crop.left += 1
+        elif key == ord("h"):
+            eye.crop.left = max(0, eye.crop.left - 1)
+        elif key == ord("u"):
+            eye.crop.bottom += 1
+        elif key == ord("j"):
+            eye.crop.bottom = max(0, eye.crop.bottom - 1)
+        else:
+            return
+        self.config.save()
 
     def run(self) -> None:
         cv2.namedWindow("VisionPi", cv2.WINDOW_NORMAL)
@@ -38,6 +107,7 @@ class VisionPiApp:
         running = True
         while running:
             frame = self.cameras.compose(self.camera_name)
+            frame = apply_display_settings(frame, self.config.display)
 
             event = self.gestures.update(frame)
             if event is not None:
@@ -61,6 +131,11 @@ class VisionPiApp:
                 pinch_active=self.pinched,
                 debounce_remaining_s=self.debounce_remaining_s,
             )
+
+            if self.calibration_mode:
+                msg = f"CAL {self.calibration_eye.upper()} | WASD offset | [] scale | ,. rot | M mirror | E eye"
+                cv2.putText(frame, msg, (20, 415), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 210, 120), 1)
+
             self.status.update_fps()
             render_status_bar(frame, self.status.snapshot(self.camera_name), self.width, self.height)
             render_cursor(frame, self.cursor_xy, self.pinched)
@@ -69,6 +144,7 @@ class VisionPiApp:
             key = cv2.waitKey(1) & 0xFF
             if key in (27, ord("q")):
                 break
+            self._handle_calibration_key(key)
 
         self.cameras.close()
         cv2.destroyAllWindows()
