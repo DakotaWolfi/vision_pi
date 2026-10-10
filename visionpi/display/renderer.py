@@ -64,7 +64,8 @@ def render_status_bar(frame: np.ndarray, status: Mapping[str, str], width: int, 
     text = (
         f"CPU {status.get('cpu_temp', '--')} | Fan {status.get('fan_rpm', '--')} | "
         f"FPS {status.get('fps', '--')} | Cam {status.get('camera', '--')} | "
-        f"Collar {status.get('collar', 'disconnected')}"
+        f"WiFi {status.get('wifi', '--')} | Power {status.get('power', '--')} | "
+        f"Collar {status.get('collar', 'disconnected')} ({status.get('collar_battery', '--')})"
     )
     cv2.putText(frame, text, (10, height - 9), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (220, 220, 220), 1)
 
