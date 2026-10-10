@@ -6,7 +6,15 @@ import cv2
 import numpy as np
 
 
-def render_menu(frame: np.ndarray, breadcrumb: str, items: List[str], active_index: int, origin: Tuple[int, int] = (20, 20)) -> None:
+def render_menu(
+    frame: np.ndarray,
+    breadcrumb: str,
+    items: List[str],
+    active_index: int,
+    pinch_active: bool,
+    debounce_remaining_s: float,
+    origin: Tuple[int, int] = (20, 20),
+) -> None:
     x0, y0 = origin
     box_w, box_h = 400, 360
 
@@ -26,7 +34,23 @@ def render_menu(frame: np.ndarray, breadcrumb: str, items: List[str], active_ind
     for i, item in enumerate(items):
         y = base_y + i * step
         color = (255, 240, 170) if i == active_index else (220, 220, 220)
+        if i == active_index:
+            hl_y0 = y - 22
+            hl_y1 = y + 10
+            hl_color = (40, 70, 95) if pinch_active else (30, 55, 40)
+            cv2.rectangle(frame, (x0 + 12, hl_y0), (x0 + box_w - 12, hl_y1), hl_color, -1)
         cv2.putText(frame, item, (x0 + (24 if breadcrumb != "VISION" else 20), y), cv2.FONT_HERSHEY_SIMPLEX, font, color, 2)
+
+    # Pinch/debounce feedback near the menu header to make activation timing clear.
+    status_text = "Pinch ready"
+    status_color = (150, 255, 170)
+    if debounce_remaining_s > 0:
+        status_text = f"Debounce {debounce_remaining_s:.2f}s"
+        status_color = (90, 180, 255)
+    if pinch_active:
+        status_text = "Pinch"
+        status_color = (255, 220, 120)
+    cv2.putText(frame, status_text, (x0 + box_w - 150, y0 + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, status_color, 1)
 
 
 def render_status_bar(frame: np.ndarray, status: Mapping[str, str], width: int, height: int) -> None:

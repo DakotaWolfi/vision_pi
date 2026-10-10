@@ -24,6 +24,7 @@ class VisionPiApp:
         self.status = StatusCollector()
         self.cursor_xy = (width // 2, height // 2)
         self.pinched = False
+        self.debounce_remaining_s = 0.0
 
     def _apply_selection(self, selection) -> None:
         if selection is None:
@@ -41,7 +42,8 @@ class VisionPiApp:
             event = self.gestures.update(frame)
             if event is not None:
                 self.cursor_xy = event.cursor_xy
-                self.pinched = event.pinch_distance_px < self.gestures.threshold_px
+                self.pinched = event.pinch_active
+                self.debounce_remaining_s = event.debounce_remaining_s
                 self.menu.update_hover(self.cursor_xy)
                 if event.pinch_confirmed:
                     running, _, selection = self.menu.confirm()
@@ -51,7 +53,14 @@ class VisionPiApp:
             items = self.menu.current_items()
             active_index = self.menu.active_root_index if not self.menu.in_submenu else self.menu.active_sub_index
 
-            render_menu(frame, breadcrumb, items, active_index)
+            render_menu(
+                frame,
+                breadcrumb,
+                items,
+                active_index,
+                pinch_active=self.pinched,
+                debounce_remaining_s=self.debounce_remaining_s,
+            )
             self.status.update_fps()
             render_status_bar(frame, self.status.snapshot(self.camera_name), self.width, self.height)
             render_cursor(frame, self.cursor_xy, self.pinched)

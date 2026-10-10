@@ -14,6 +14,8 @@ import numpy as np
 class GestureEvent:
     cursor_xy: Tuple[int, int]
     pinch_confirmed: bool
+    pinch_active: bool
+    debounce_remaining_s: float
     pinch_distance_px: float
 
 
@@ -57,4 +59,12 @@ class GestureTracker:
             self.last_confirm_s = now_s
 
         self.was_pinched = pinched
-        return GestureEvent(cursor_xy=(cx, cy), pinch_confirmed=pinch_confirmed, pinch_distance_px=distance_px)
+        elapsed = now_s - self.last_confirm_s
+        debounce_remaining_s = max(0.0, self.debounce_s - elapsed)
+        return GestureEvent(
+            cursor_xy=(cx, cy),
+            pinch_confirmed=pinch_confirmed,
+            pinch_active=pinched,
+            debounce_remaining_s=debounce_remaining_s,
+            pinch_distance_px=distance_px,
+        )
