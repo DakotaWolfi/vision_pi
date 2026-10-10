@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import cv2
-import mediapipe as mp
 import numpy as np
 
 
@@ -26,6 +25,13 @@ class GestureTracker:
         self.debounce_s = debounce_s
         self.was_pinched = False
         self.last_confirm_s = 0.0
+
+        try:
+            import mediapipe as mp
+        except ImportError as exc:
+            raise RuntimeError(
+                "MediaPipe is required for gesture tracking. Install with: pip install -r requirements.txt"
+            ) from exc
 
         self.hands = mp.solutions.hands.Hands(
             model_complexity=0,

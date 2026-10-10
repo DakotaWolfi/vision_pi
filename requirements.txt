@@ -1,6 +1,7 @@
-# Add exact versions after copying the current working environment.
-# Likely project dependencies include:
-# opencv-python
-# mediapipe
-# numpy
-# picamera2  # normally installed from Raspberry Pi OS packages
+numpy>=1.24
+opencv-python>=4.8
+mediapipe>=0.10
+
+# Picamera2 is normally installed via apt on Raspberry Pi OS:
+#   sudo apt install python3-picamera2
+# Keep it optional in pip requirements to avoid failing on non-Pi hosts.

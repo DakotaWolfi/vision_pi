@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+
+# Local runtime/config artifacts
+.venv/
+.pytest_cache/
+*.log
+
+# VisionPi local calibration config on development machines
+.visionpi-local/
