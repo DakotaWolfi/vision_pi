@@ -1,0 +1,6 @@
+# Add exact versions after copying the current working environment.
+# Likely project dependencies include:
+# opencv-python
+# mediapipe
+# numpy
+# picamera2  # normally installed from Raspberry Pi OS packages
