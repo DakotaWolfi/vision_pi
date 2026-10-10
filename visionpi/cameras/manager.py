@@ -18,6 +18,7 @@ class CameraConfig:
     height: int = 720
     wifi_eye_1: str = ""
     wifi_eye_2: str = ""
+    single_camera: bool = False
 
 
 class CameraManager:
@@ -28,7 +29,9 @@ class CameraManager:
         self._sources: Dict[str, CameraSource] = {}
 
         self._sources["Left"] = self._open_pi_source(0, "Left")
-        self._sources["Right"] = self._open_pi_source(1, "Right")
+
+        if not config.single_camera:
+            self._sources["Right"] = self._open_pi_source(1, "Right")
         self._sources["WiFi Eye 1"] = self._open_wifi_source(config.wifi_eye_1, "WiFi Eye 1")
         self._sources["WiFi Eye 2"] = self._open_wifi_source(config.wifi_eye_2, "WiFi Eye 2")
 
@@ -54,14 +57,31 @@ class CameraManager:
         return frame
 
     def compose(self, source_name: str) -> np.ndarray:
+        if source_name == "WiFi Eye 1":
+            return cv2.resize(self._safe_read("WiFi Eye 1"), (self.config.width, self.config.height))
+
+        if source_name == "WiFi Eye 2":
+            return cv2.resize(self._safe_read("WiFi Eye 2"), (self.config.width, self.config.height))
+
         left_frame = self._safe_read("Left")
-        right_frame = self._safe_read("Right")
 
         left_frame = apply_eye_calibration(
             left_frame,
             self.app_config.calibration["left"],
             (self.config.width, self.config.height),
         )
+        if self.config.single_camera:
+            if source_name in ("Left", "Right"):
+                return cv2.resize(left_frame, (self.config.width, self.config.height))
+
+            left_half = cv2.resize(
+                left_frame,
+                (self.config.width // 2, self.config.height),
+            )
+            return np.hstack([left_half, left_half.copy()])
+
+        right_frame = self._safe_read("Right")
+
         right_frame = apply_eye_calibration(
             right_frame,
             self.app_config.calibration["right"],
@@ -72,11 +92,6 @@ class CameraManager:
             return cv2.resize(left_frame, (self.config.width, self.config.height))
         if source_name == "Right":
             return cv2.resize(right_frame, (self.config.width, self.config.height))
-        if source_name == "WiFi Eye 1":
-            return cv2.resize(self._safe_read("WiFi Eye 1"), (self.config.width, self.config.height))
-        if source_name == "WiFi Eye 2":
-            return cv2.resize(self._safe_read("WiFi Eye 2"), (self.config.width, self.config.height))
-
         left_half = cv2.resize(left_frame, (self.config.width // 2, self.config.height))
         right_half = cv2.resize(right_frame, (self.config.width // 2, self.config.height))
         return np.hstack([left_half, right_half])

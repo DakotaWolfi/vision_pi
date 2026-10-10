@@ -17,7 +17,14 @@ from .system import StatusCollector
 
 
 class VisionPiApp:
-    def __init__(self, width: int, height: int, wifi_eye_1: str = "", wifi_eye_2: str = "") -> None:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        wifi_eye_1: str = "",
+        wifi_eye_2: str = "",
+        single_camera: bool = False,
+    ) -> None:
         self.width = width
         self.height = height
         self.camera_name = "Stereo"
@@ -28,7 +35,13 @@ class VisionPiApp:
         self.last_action_message = ""
 
         self.cameras = CameraManager(
-            CameraConfig(width=width, height=height, wifi_eye_1=wifi_eye_1, wifi_eye_2=wifi_eye_2),
+            CameraConfig(
+                width=width,
+                height=height,
+                wifi_eye_1=wifi_eye_1,
+                wifi_eye_2=wifi_eye_2,
+                single_camera=single_camera,
+            ),
             app_config=self.config,
         )
         self.menu = MenuController(MENU_TREE)
@@ -190,10 +203,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--wifi-eye-1", default="")
     parser.add_argument("--wifi-eye-2", default="")
+    parser.add_argument(
+        "--single-camera",
+        action="store_true",
+        help="Use only camera 0 and duplicate it to both eyes",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    app = VisionPiApp(width=args.width, height=args.height, wifi_eye_1=args.wifi_eye_1, wifi_eye_2=args.wifi_eye_2)
+    app = VisionPiApp(
+        width=args.width,
+        height=args.height,
+        wifi_eye_1=args.wifi_eye_1,
+        wifi_eye_2=args.wifi_eye_2,
+        single_camera=args.single_camera,
+    )
     app.run()
