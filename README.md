@@ -14,7 +14,7 @@ Current project goals:
 ## Repository layout
 
 ```text
-VisionPi/
+.
 ├─ docs/                  Hardware, setup and architecture notes
 ├─ visionpi/              Main Python package
 │  ├─ cameras/            CSI, stereo and Wi-Fi eye support
