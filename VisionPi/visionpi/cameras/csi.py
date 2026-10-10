@@ -1,1 +1,0 @@
-"""CSI camera support placeholder."""

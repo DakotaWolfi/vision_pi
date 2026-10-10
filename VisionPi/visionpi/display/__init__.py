@@ -1,1 +1,0 @@
-"""VisionPi display package."""
