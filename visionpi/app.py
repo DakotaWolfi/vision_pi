@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 import cv2
 
@@ -8,6 +9,7 @@ from . import __version__
 from .config import AppConfig
 from .cameras import CameraManager
 from .cameras.manager import CameraConfig
+from .collar import CollarClient
 from .display.calibration import apply_display_settings
 from .display import render_cursor, render_menu, render_status_bar
 from .menu import MENU_TREE, GestureTracker, MenuController
@@ -22,6 +24,8 @@ class VisionPiApp:
         self.config = AppConfig.load()
         self.calibration_mode = False
         self.calibration_eye = "left"
+        self.collar = CollarClient(endpoint=os.environ.get("COLLARPET_ENDPOINT", ""))
+        self.last_action_message = ""
 
         self.cameras = CameraManager(
             CameraConfig(width=width, height=height, wifi_eye_1=wifi_eye_1, wifi_eye_2=wifi_eye_2),
@@ -55,6 +59,26 @@ class VisionPiApp:
                 self.config.save()
             elif selection.item == "Calibration":
                 self.calibration_mode = not self.calibration_mode
+        if selection.root == "COLLAR PET":
+            self.last_action_message = self._handle_collar_selection(selection.item)
+
+    def _handle_collar_selection(self, item: str) -> str:
+        if item == "Status":
+            status = self.collar.get_status()
+            return f"CollarPet: {status.state}"
+        if item == "Face / Expression":
+            return f"Face: {self.collar.set_expression('neutral')}"
+        if item == "LEDs":
+            return f"LEDs: {self.collar.set_led_mode('default')}"
+        if item == "Haptic":
+            return f"Haptic: {self.collar.vibrate()}"
+        if item == "NFC":
+            return f"NFC: {self.collar.trigger_nfc()}"
+        if item == "Music / Recognition":
+            return f"Music: {self.collar.music_recognition()}"
+        if item == "PetMind":
+            return f"PetMind: {self.collar.petmind()}"
+        return ""
 
     def _handle_calibration_key(self, key: int) -> None:
         if not self.calibration_mode:
@@ -136,8 +160,18 @@ class VisionPiApp:
                 msg = f"CAL {self.calibration_eye.upper()} | WASD offset | [] scale | ,. rot | M mirror | E eye"
                 cv2.putText(frame, msg, (20, 415), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 210, 120), 1)
 
+            if self.last_action_message:
+                cv2.putText(frame, self.last_action_message, (20, 440), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 220, 255), 1)
+
             self.status.update_fps()
-            render_status_bar(frame, self.status.snapshot(self.camera_name), self.width, self.height)
+            collar_status = self.collar.get_status()
+            collar_battery = "--" if collar_status.battery_percent is None else f"{collar_status.battery_percent}%"
+            status_snapshot = self.status.snapshot(
+                self.camera_name,
+                collar_state=collar_status.state,
+                collar_battery=collar_battery,
+            )
+            render_status_bar(frame, status_snapshot, self.width, self.height)
             render_cursor(frame, self.cursor_xy, self.pinched)
 
             cv2.imshow("VisionPi", frame)
