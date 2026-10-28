@@ -171,7 +171,7 @@ class VisionPiApp:
             )
 
             if self.calibration_mode:
-                msg = f"CAL {self.calibration_eye.upper()} | WASD offset | [] scale | ,. rot | M mirror | E eye"
+                msg = f"CAL {self.calibration_eye.upper()} | C exit | WASD offset | [] scale | ,. rot | M mirror | E eye"
                 cv2.putText(frame, msg, (20, 415), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 210, 120), 1)
 
             if self.last_action_message:
@@ -194,6 +194,9 @@ class VisionPiApp:
             key = cv2.waitKeyEx(1)
             if key in (27, ord("q")):
                 break
+            if key == ord("c"):
+                self.calibration_mode = not self.calibration_mode
+                continue
             if self.calibration_mode:
                 # WASD belongs to per-eye calibration while calibration is active.
                 self._handle_calibration_key(key)
