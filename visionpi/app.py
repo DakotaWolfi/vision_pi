@@ -31,6 +31,7 @@ class VisionPiApp:
         self.camera_name = "Stereo"
         self.config = AppConfig.load()
         self.calibration_mode = False
+        self.menu_visible = False
         self.calibration_eye = "left"
         self.collar = CollarClient(endpoint=os.environ.get("COLLARPET_ENDPOINT", ""))
         self.last_action_message = ""
@@ -141,6 +142,7 @@ class VisionPiApp:
 
     def run(self) -> None:
         cv2.namedWindow("VisionPi", cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty("VisionPi", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         running = True
         while running:
@@ -152,8 +154,9 @@ class VisionPiApp:
                 self.cursor_xy = event.cursor_xy
                 self.pinched = event.pinch_active
                 self.debounce_remaining_s = event.debounce_remaining_s
-                self.menu.update_hover(self.cursor_xy)
-                if event.pinch_confirmed:
+                if self.menu_visible:
+                    self.menu.update_hover(self.cursor_xy)
+                if self.menu_visible and event.pinch_confirmed:
                     running, _, selection = self.menu.confirm()
                     self._apply_selection(selection)
 
@@ -161,22 +164,9 @@ class VisionPiApp:
             items = self.menu.current_items()
             active_index = self.menu.active_root_index if not self.menu.in_submenu else self.menu.active_sub_index
 
-            render_menu(
-                frame,
-                breadcrumb,
-                items,
-                active_index,
-                pinch_active=self.pinched,
-                debounce_remaining_s=self.debounce_remaining_s,
-            )
-
-            if self.calibration_mode:
-                msg = f"CAL {self.calibration_eye.upper()} | C exit | WASD offset | [] scale | ,. rot | M mirror | E eye"
-                cv2.putText(frame, msg, (20, 415), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 210, 120), 1)
-
-            if self.last_action_message:
-                cv2.putText(frame, self.last_action_message, (20, 440), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 220, 255), 1)
-
+            # Overlay HUD elements separately in each eye to keep stereo alignment.
+            stereo = self.camera_name == "Stereo"
+            eye_frames = (frame[:, :self.width // 2], frame[:, self.width // 2:]) if stereo else (frame,)
             self.status.update_fps()
             collar_status = self.collar.get_status()
             collar_battery = "--" if collar_status.battery_percent is None else f"{collar_status.battery_percent}%"
@@ -185,17 +175,41 @@ class VisionPiApp:
                 collar_state=collar_status.state,
                 collar_battery=collar_battery,
             )
-            render_status_bar(frame, status_snapshot, self.width, self.height)
-            if self.gestures is not None:
-                render_cursor(frame, self.cursor_xy, self.pinched)
+            for eye_frame in eye_frames:
+                eh, ew = eye_frame.shape[:2]
+                if self.menu_visible:
+                    render_menu(eye_frame, breadcrumb, items, active_index,
+                                pinch_active=self.pinched,
+                                debounce_remaining_s=self.debounce_remaining_s)
+                if self.calibration_mode:
+                    cv2.putText(eye_frame, f"CAL {self.calibration_eye.upper()} | C exit | WASD offset",
+                                (20, 415), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 210, 120), 1)
+                if self.last_action_message:
+                    cv2.putText(eye_frame, self.last_action_message,
+                                (20, 440), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 220, 255), 1)
+                if self.menu_visible:
+                    render_status_bar(eye_frame, status_snapshot, ew, eh)
+                if self.gestures is not None and self.menu_visible:
+                    render_cursor(eye_frame, self.cursor_xy, self.pinched)
 
             cv2.imshow("VisionPi", frame)
             # waitKeyEx preserves special keys (arrows, Backspace) on Linux.
             key = cv2.waitKeyEx(1)
             if key == ord("q"):
                 break
+            if key == ord("m") and not self.calibration_mode:
+                self.menu_visible = not self.menu_visible
+                continue
+            if key == ord("x") and not self.calibration_mode:
+                self.cameras.swap_eyes()
+                continue
             if key == 27:
-                if not self.menu.back():
+                if self.calibration_mode:
+                    self.calibration_mode = False
+                elif self.menu_visible:
+                    if not self.menu.back():
+                        self.menu_visible = False
+                else:
                     break
                 continue
             if key == ord("c"):
@@ -204,6 +218,8 @@ class VisionPiApp:
             if self.calibration_mode:
                 # WASD belongs to per-eye calibration while calibration is active.
                 self._handle_calibration_key(key)
+            elif not self.menu_visible:
+                continue
             elif key in (82, 2490368, 65362, 65365, 2162688, ord("w"), ord("k")):
                 self.menu.move(-1)
             elif key in (84, 2621440, 65364, 65366, 2228224, ord("s"), ord("j")):
@@ -220,8 +236,8 @@ class VisionPiApp:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=f"VisionPi {__version__}")
-    parser.add_argument("--width", type=int, default=1280)
-    parser.add_argument("--height", type=int, default=720)
+    parser.add_argument("--width", type=int, default=3840)
+    parser.add_argument("--height", type=int, default=1080)
     parser.add_argument("--wifi-eye-1", default="")
     parser.add_argument("--wifi-eye-2", default="")
     parser.add_argument(
