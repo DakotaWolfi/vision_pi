@@ -26,13 +26,15 @@ class PiCameraSource(CameraSource):
         if Picamera2 is None:
             raise RuntimeError("Picamera2 is unavailable")
         self.picam = Picamera2(camera_num)
-        config = self.picam.create_preview_configuration(main={"size": size, "format": "RGB888"})
+        config = self.picam.create_preview_configuration(main={"size": size, "format": "RGB888"}, buffer_count=3)
         self.picam.configure(config)
         self.picam.start()
 
     def read(self) -> Optional[np.ndarray]:
         frame = self.picam.capture_array()
-        return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Picamera2 RGB888 buffers are BGR byte-ordered for OpenCV.
+        # The old conversion swapped red and blue a second time.
+        return frame
 
     def close(self) -> None:
         self.picam.stop()
