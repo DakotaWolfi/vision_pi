@@ -25,7 +25,9 @@ class CameraManager:
     def __init__(self, config: CameraConfig, app_config: AppConfig) -> None:
         self.config = config
         self.app_config = app_config
-        self.size = (config.width, config.height)
+        # Capture at a practical resolution; upscale each eye for the display.
+        self.size = (min(1280, max(320, config.width // 2)), min(720, config.height))
+        self.swapped = False
         self._sources: Dict[str, CameraSource] = {}
 
         self._sources["Left"] = self._open_pi_source(0, "Left")
@@ -85,8 +87,11 @@ class CameraManager:
         right_frame = apply_eye_calibration(
             right_frame,
             self.app_config.calibration["right"],
-            (self.config.width, self.config.height),
+            self.size,
         )
+
+        if self.swapped:
+            left_frame, right_frame = right_frame, left_frame
 
         if source_name == "Left":
             return cv2.resize(left_frame, (self.config.width, self.config.height))
@@ -95,6 +100,9 @@ class CameraManager:
         left_half = cv2.resize(left_frame, (self.config.width // 2, self.config.height))
         right_half = cv2.resize(right_frame, (self.config.width // 2, self.config.height))
         return np.hstack([left_half, right_half])
+
+    def swap_eyes(self) -> None:
+        self.swapped = not self.swapped
 
     def close(self) -> None:
         for source in self._sources.values():
