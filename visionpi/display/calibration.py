@@ -27,6 +27,10 @@ def apply_eye_calibration(frame: np.ndarray, cal: EyeCalibration, out_size: Tupl
     if cal.mirror:
         working = cv2.flip(working, 1)
 
+    if (cal.rotation_deg == 0 and cal.scale == 1.0 and
+            cal.offset_x == 0 and cal.offset_y == 0):
+        return cv2.resize(working, out_size) if (working.shape[1], working.shape[0]) != out_size else working
+
     h, w = working.shape[:2]
     cx, cy = w * 0.5, h * 0.5
     m = cv2.getRotationMatrix2D((cx, cy), cal.rotation_deg, cal.scale)
@@ -38,9 +42,10 @@ def apply_eye_calibration(frame: np.ndarray, cal: EyeCalibration, out_size: Tupl
 
 
 def apply_display_settings(frame: np.ndarray, settings: DisplaySettings) -> np.ndarray:
-    out = frame.astype(np.float32)
-    out *= settings.brightness
-    out = np.clip(out, 0, 255).astype(np.uint8)
+    # Fast path: avoid float conversion of the full 3840x1080 buffer.
+    out = frame
+    if settings.brightness != 1.0:
+        out = cv2.convertScaleAbs(out, alpha=max(0.0, settings.brightness), beta=0)
 
     if settings.zoom > 1.0:
         h, w = out.shape[:2]
