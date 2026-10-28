@@ -24,6 +24,7 @@ class VisionPiApp:
         wifi_eye_1: str = "",
         wifi_eye_2: str = "",
         single_camera: bool = False,
+        gestures_enabled: bool = False,
     ) -> None:
         self.width = width
         self.height = height
@@ -45,7 +46,7 @@ class VisionPiApp:
             app_config=self.config,
         )
         self.menu = MenuController(MENU_TREE)
-        self.gestures = GestureTracker((width, height))
+        self.gestures = GestureTracker((width, height)) if gestures_enabled else None
         self.status = StatusCollector()
         self.cursor_xy = (width // 2, height // 2)
         self.pinched = False
@@ -146,7 +147,7 @@ class VisionPiApp:
             frame = self.cameras.compose(self.camera_name)
             frame = apply_display_settings(frame, self.config.display)
 
-            event = self.gestures.update(frame)
+            event = self.gestures.update(frame) if self.gestures is not None else None
             if event is not None:
                 self.cursor_xy = event.cursor_xy
                 self.pinched = event.pinch_active
@@ -185,13 +186,26 @@ class VisionPiApp:
                 collar_battery=collar_battery,
             )
             render_status_bar(frame, status_snapshot, self.width, self.height)
-            render_cursor(frame, self.cursor_xy, self.pinched)
+            if self.gestures is not None:
+                render_cursor(frame, self.cursor_xy, self.pinched)
 
             cv2.imshow("VisionPi", frame)
-            key = cv2.waitKey(1) & 0xFF
+            # waitKeyEx preserves special keys (arrows, Backspace) on Linux.
+            key = cv2.waitKeyEx(1)
             if key in (27, ord("q")):
                 break
-            self._handle_calibration_key(key)
+            if self.calibration_mode:
+                # WASD belongs to per-eye calibration while calibration is active.
+                self._handle_calibration_key(key)
+            elif key in (82, 2490368, 65362, ord("w"), ord("k")):
+                self.menu.move(-1)
+            elif key in (84, 2621440, 65364, ord("s"), ord("j")):
+                self.menu.move(1)
+            elif key in (13, 10, 32, 83, 2555904, 65363, ord("d")):
+                running, _, selection = self.menu.confirm()
+                self._apply_selection(selection)
+            elif key in (8, 127, 81, 2424832, 65361, ord("a")):
+                self.menu.back()
 
         self.cameras.close()
         cv2.destroyAllWindows()
@@ -208,6 +222,8 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use only camera 0 and duplicate it to both eyes",
     )
+    parser.add_argument("--gestures", action="store_true",
+                        help="Enable legacy MediaPipe hand gestures (off by default)")
     return parser.parse_args()
 
 
@@ -219,5 +235,6 @@ def main() -> None:
         wifi_eye_1=args.wifi_eye_1,
         wifi_eye_2=args.wifi_eye_2,
         single_camera=args.single_camera,
+        gestures_enabled=args.gestures,
     )
     app.run()
