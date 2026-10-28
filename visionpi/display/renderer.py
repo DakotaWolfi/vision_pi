@@ -42,7 +42,7 @@ def render_menu(
         cv2.putText(frame, item, (x0 + (24 if breadcrumb != "VISION" else 20), y), cv2.FONT_HERSHEY_SIMPLEX, font, color, 2)
 
     # Pinch/debounce feedback near the menu header to make activation timing clear.
-    status_text = "Pinch ready"
+    status_text = "W/S move  Enter select"
     status_color = (150, 255, 170)
     if debounce_remaining_s > 0:
         status_text = f"Debounce {debounce_remaining_s:.2f}s"
@@ -50,7 +50,7 @@ def render_menu(
     if pinch_active:
         status_text = "Pinch"
         status_color = (255, 220, 120)
-    cv2.putText(frame, status_text, (x0 + box_w - 150, y0 + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, status_color, 1)
+    cv2.putText(frame, status_text, (x0 + box_w - 205, y0 + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, status_color, 1)
 
 
 def render_status_bar(frame: np.ndarray, status: Mapping[str, str], width: int, height: int) -> None:
