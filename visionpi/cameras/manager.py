@@ -54,7 +54,7 @@ class CameraManager:
     def _safe_read(self, label: str) -> np.ndarray:
         frame = self._sources[label].read()
         if frame is None:
-            frame = np.zeros((self.config.height, self.config.width, 3), dtype=np.uint8)
+            frame = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
             cv2.putText(frame, f"{label} no signal", (20, 44), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (100, 100, 255), 2)
         return frame
 
@@ -70,7 +70,7 @@ class CameraManager:
         left_frame = apply_eye_calibration(
             left_frame,
             self.app_config.calibration["left"],
-            (self.config.width, self.config.height),
+            self.size,
         )
         if self.config.single_camera:
             if source_name in ("Left", "Right"):
