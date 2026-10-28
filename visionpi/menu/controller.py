@@ -64,3 +64,21 @@ class MenuController:
             return True, True, None
 
         return True, False, MenuSelection(root=root, item=item)
+
+    def move(self, delta: int) -> None:
+        """Move the currently highlighted item (with wraparound)."""
+        items = self.current_items()
+        if not items:
+            return
+        if self.in_submenu:
+            self.active_sub_index = (self.active_sub_index + delta) % len(items)
+        else:
+            self.active_root_index = (self.active_root_index + delta) % len(items)
+
+    def back(self) -> bool:
+        """Return to the root menu; true if the menu changed."""
+        if not self.in_submenu:
+            return False
+        self.in_submenu = False
+        self.active_sub_index = 0
+        return True
