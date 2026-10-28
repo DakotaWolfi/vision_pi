@@ -192,17 +192,21 @@ class VisionPiApp:
             cv2.imshow("VisionPi", frame)
             # waitKeyEx preserves special keys (arrows, Backspace) on Linux.
             key = cv2.waitKeyEx(1)
-            if key in (27, ord("q")):
+            if key == ord("q"):
                 break
+            if key == 27:
+                if not self.menu.back():
+                    break
+                continue
             if key == ord("c"):
                 self.calibration_mode = not self.calibration_mode
                 continue
             if self.calibration_mode:
                 # WASD belongs to per-eye calibration while calibration is active.
                 self._handle_calibration_key(key)
-            elif key in (82, 2490368, 65362, ord("w"), ord("k")):
+            elif key in (82, 2490368, 65362, 65365, 2162688, ord("w"), ord("k")):
                 self.menu.move(-1)
-            elif key in (84, 2621440, 65364, ord("s"), ord("j")):
+            elif key in (84, 2621440, 65364, 65366, 2228224, ord("s"), ord("j")):
                 self.menu.move(1)
             elif key in (13, 10, 32, 83, 2555904, 65363, ord("d")):
                 running, _, selection = self.menu.confirm()
