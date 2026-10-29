@@ -51,3 +51,21 @@ Set `layout_variant = "compact"` (the new default) to use a **160 × 124 mm** pl
 Set `layout_variant = "wide"` to restore the original 198 × 124 mm landscape layout, horizontally mounted adapter and original clearances. This retains both versions in the *same* editable OpenSCAD file.
 
 **Fit checks before printing:** confirm the adapter's true connector direction and room for the 90° micro-HDMI leads; the power module mounting pitch is still provisional. The compact geometry has not been physically test-fitted.
+
+## Stacked layout from physical component photo (new default)
+
+The new `layout_variant = "stacked"` uses a **112 × 178 mm** plate, arranging the components along its long axis: **DC-DC at [15,10]**, **HDMI-to-USB-C body at [29,69]** and **Pi 5 at [12,109]** (all coordinates are the lower-left corners, in mm). The Pi 5 USB-A/Ethernet connector edge points toward **+X/right**, outside the electronics footprint. The HDMI adapter is horizontal here, matching the photo arrangement; the earlier `compact` (rotated adapter) and `wide` versions are still selectable. The DC-DC board has approximately 15 mm to the HDMI adapter's body and the Pi board starts 8 mm after the HDMI body's far edge. Check actual cable connector protrusion and thickness before printing.
+
+The plate keeps patterned hex/round holes while reserving solid mount regions. The power board's M2.5 hole pitch remains a *provisional inferred* 48 × 33 mm; verify physically.
+
+## Standoff settings and heat-set threaded inserts
+
+- `pi_post_diameter` and `dc_post_diameter`: adjust boss outside diameters separately (defaults 8 mm).
+- `pi_post_height` and `dc_post_height`: independent standoff heights (defaults 7 and 6 mm).
+- `pi_heat_inserts` and `dc_heat_inserts`: independent toggles (default **false** for both).
+- `pi_insert_pilot_diameter` and `dc_insert_pilot_diameter` (default 3.5 mm), and `pi_insert_depth` / `dc_insert_depth` (default 4 mm), define the **blind top-side insert pockets**.
+- Standard screw mode instead uses a through-hole shaft. Printed boss geometry enforces a minimum 1.2 mm radial wall around the insert pocket and requires pilot depth less than boss height.
+
+**Verify with your actual inserts:** M2.5 brass heat-set insert brands need different pilot diameters, depths and installation tolerances. Measure one and print a standalone test boss before committing to the whole carrier. For heat-set mode the blind pocket is intentionally closed by the base plate.
+
+**Verification state:** GitHub source was updated, but full OpenSCAD render/export in the current environment could not be completed. This is a layout prototype, not a tested print.
