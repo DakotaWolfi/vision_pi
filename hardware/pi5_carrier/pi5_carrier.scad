@@ -137,30 +137,24 @@ function near_dc_post(x,y) =
 // UNDER the converter body where no mounting hardware occupies the plate.
 function in_box(x,y,x0,y0,x1,y1,pad=0) =
     x > x0-pad && x < x1+pad && y > y0-pad && y < y1+pad;
+// Preserve a local solid region around the converter's zip-tie slots.
+// Tall wall keepouts are handled separately by near_adapter_wall().
 function near_adapter(x,y) =
     let(pad=pattern_hole_diameter/2+2,
         ax=adapter_mount_origin[0], ay=adapter_mount_origin[1],
         aw=adapter_footprint[0], ah=adapter_footprint[1])
     (!adapter_rotate_90 ?
-      (in_box(x,y,ax+adapter_rail_end_gap,ay-adapter_clearance-adapter_rail_thickness,
-                  ax+aw-adapter_rail_end_gap,ay-adapter_clearance,pad) ||
-       in_box(x,y,ax+adapter_rail_end_gap,ay+ah+adapter_clearance,
-                  ax+aw-adapter_rail_end_gap,ay+ah+adapter_clearance+adapter_rail_thickness,pad) ||
-       len([for(sx=adapter_zip_positions)
+      len([for(sx=adapter_zip_positions)
           if (in_box(x,y,ax+sx,ay-adapter_zip_slot_length-2,
                      ax+sx+adapter_zip_slot_width,ay-2,pad) ||
               in_box(x,y,ax+sx,ay+ah+2,
-                     ax+sx+adapter_zip_slot_width,ay+ah+2+adapter_zip_slot_length,pad)) 1])>0)
+                     ax+sx+adapter_zip_slot_width,ay+ah+2+adapter_zip_slot_length,pad)) 1])>0
       :
-      (in_box(x,y,ax-adapter_clearance-adapter_rail_thickness,ay+adapter_rail_end_gap,
-                  ax-adapter_clearance,ay+ah-adapter_rail_end_gap,pad) ||
-       in_box(x,y,ax+aw+adapter_clearance,ay+adapter_rail_end_gap,
-                  ax+aw+adapter_clearance+adapter_rail_thickness,ay+ah-adapter_rail_end_gap,pad) ||
-       len([for(sy=adapter_zip_positions)
-          if(in_box(x,y,ax-adapter_zip_slot_length-2,ay+sy,
-                    ax-2,ay+sy+adapter_zip_slot_width,pad) ||
-             in_box(x,y,ax+aw+2,ay+sy,
-                    ax+aw+2+adapter_zip_slot_length,ay+sy+adapter_zip_slot_width,pad)) 1])>0));
+      len([for(sy=adapter_zip_positions)
+          if (in_box(x,y,ax-adapter_zip_slot_length-2,ay+sy,
+                     ax-2,ay+sy+adapter_zip_slot_width,pad) ||
+              in_box(x,y,ax+aw+2,ay+sy,
+                     ax+aw+2+adapter_zip_slot_length,ay+sy+adapter_zip_slot_width,pad)) 1])>0);
 function near_adapter_wall(x,y) =
     let(pad=pattern_hole_diameter/2+3,
         wallx=adapter_mount_origin[0]+adapter_footprint[0]/2+adapter_wall_offset,
