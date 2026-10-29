@@ -65,6 +65,11 @@ adapter_wall_inner_gap = 16;   // mm clear opening between inner wall faces
 adapter_wall_offset = 0;       // mm: signed shift across short axis
 adapter_wall_along_offset = 0; // mm: signed shift along long axis
 adapter_wall_length = 42;      // mm, leave both connectors accessible
+adapter_zip_slot_width = 4.6;
+adapter_zip_slot_length = 9;
+adapter_zip_positions = [13,43]; // away from connector ends
+adapter_rail_end_gap = 9;       // keep both connector faces accessible
+adapter_footprint = adapter_rotate_90 ? [adapter_body[1], adapter_body[0]] : adapter_body;
 // Minimum open gap between Pi PCB edge and HDMI adapter/walls for a 90-degree plug.
 pi_hdmi_clearance = 11; // mm
 // Stacked layout: the Pi sits above the adapter. Preserve 11 mm from its lower edge.
@@ -72,11 +77,7 @@ stacked_adapter_max_y = pi_origin[1] - pi_hdmi_clearance;
 adapter_y_shift = layout_variant == "stacked" ?
     min(0, stacked_adapter_max_y - (adapter_origin[1]+adapter_footprint[1])) : 0;
 adapter_mount_origin = [adapter_origin[0],adapter_origin[1]+adapter_y_shift];
-adapter_zip_slot_width = 4.6;
-adapter_zip_slot_length = 9;
-adapter_zip_positions = [13,43]; // away from connector ends
-adapter_rail_end_gap = 9;       // keep both connector faces accessible
-adapter_footprint = adapter_rotate_90 ? [adapter_body[1], adapter_body[0]] : adapter_body;
+
 
 // Independent mounting-hole mode: plain through-hole or heat-set threaded insert.
 // Heat-set pilot is BLIND in the standoff; only use inserts matched to your hardware.
