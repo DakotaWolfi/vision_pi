@@ -11,6 +11,15 @@
 
 $fn = 48;
 
+// ---- Lightweight plate options ----
+// solid: original full plate; hex: honeycomb apertures; round: circular holes.
+// The pattern automatically leaves clearance around all mounting features.
+plate_pattern = "hex"; // [hex,round,solid]
+pattern_hole_diameter = 13;      // mm: across corners for hex
+pattern_pitch_x = 20;            // mm between hole centers across rows
+pattern_pitch_y = 18;            // mm between rows
+pattern_edge_margin = 10;        // mm, solid perimeter around plate
+
 // ---- Editable sizes ----
 plate_thickness = 3.0;
 margin = 9;
@@ -71,9 +80,57 @@ module post(x,y,z,height,outer_d,inner_d) {
     }
 }
 
+// Holes are omitted near mounts, tie-down slots and adapter's locating rails.
+// Extra material around the adapter keeps the zip ties from tearing the plate.
+function dist2(x,y,a,b) = (x-a)*(x-a)+(y-b)*(y-b);
+function near_pi_post(x,y) =
+    len([for (xx=[0,pi_hole_pitch[0]], yy=[0,pi_hole_pitch[1]])
+        if (dist2(x,y,pi_origin[0]+pi_hole_offset[0]+xx,
+                        pi_origin[1]+pi_hole_offset[1]+yy)<pow(12+pattern_hole_diameter/2,2)) 1]) > 0;
+function near_dc_post(x,y) =
+    dc_screw_mounts &&
+    len([for (xx=[0,dc_hole_pitch[0]], yy=[0,dc_hole_pitch[1]])
+        if (dist2(x,y,dc_origin[0]+dc_hole_offset[0]+xx,
+                        dc_origin[1]+dc_hole_offset[1]+yy)<pow(10+pattern_hole_diameter/2,2)) 1]) > 0;
+function near_adapter(x,y) =
+    x > adapter_origin[0]-8-pattern_hole_diameter/2 &&
+    x < adapter_origin[0]+adapter_body[0]+8+pattern_hole_diameter/2 &&
+    y > adapter_origin[1]-12-pattern_hole_diameter/2 &&
+    y < adapter_origin[1]+adapter_body[1]+12+pattern_hole_diameter/2;
+function near_dc_ties(x,y) =
+    dc_zip_ties &&
+    x>dc_origin[0]-5 && x<dc_origin[0]+dc_board[0]+5 &&
+    (abs(y-(dc_origin[1]-1))<7+pattern_hole_diameter/2 ||
+     abs(y-(dc_origin[1]+dc_board[1]))<7+pattern_hole_diameter/2);
+function near_frame_slots(x,y) =
+    len([for(px=[12,plate_width-12],py=[7,plate_depth-7])
+        if(dist2(x,y,px,py)<pow(10+pattern_hole_diameter/2,2)) 1]) > 0;
+
+module lightening_holes() {
+ if(plate_pattern!="solid")
+  for(row=[0:ceil((plate_depth-2*pattern_edge_margin)/pattern_pitch_y)]){
+   y=pattern_edge_margin+row*pattern_pitch_y;
+   for(column=[0:ceil((plate_width-2*pattern_edge_margin)/pattern_pitch_x)]){
+     x=pattern_edge_margin+column*pattern_pitch_x+
+       ((row%2)==1?pattern_pitch_x/2:0);
+     if(x>pattern_edge_margin+pattern_hole_diameter/2 &&
+        x<plate_width-pattern_edge_margin-pattern_hole_diameter/2 &&
+        y>pattern_edge_margin+pattern_hole_diameter/2 &&
+        y<plate_depth-pattern_edge_margin-pattern_hole_diameter/2 &&
+        !near_pi_post(x,y) && !near_dc_post(x,y) &&
+        !near_adapter(x,y) && !near_dc_ties(x,y) &&
+        !near_frame_slots(x,y))
+       translate([x,y,-0.1])
+         cylinder(h=plate_thickness+0.2,d=pattern_hole_diameter,
+                  $fn=plate_pattern=="hex"?6:48);
+   }
+  }
+}
+
 // ---- Plate, including zip-tie and mounting slots ----
 difference() {
     rounded_plate(plate_width,plate_depth,corner_radius,plate_thickness);
+    lightening_holes();
 
     // Screw shaft clearance through base, so screws aren't blind.
     for (xx=[0,pi_hole_pitch[0]], yy=[0,pi_hole_pitch[1]])
