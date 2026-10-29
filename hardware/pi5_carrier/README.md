@@ -84,3 +84,7 @@ adapter_wall_length = 42;
 ```
 
 The wall spacing is the **16 mm clear opening between the two inner faces**, not the adapter's 60 × 32 mm face width. The adapter is assumed to be mounted on its narrow edge between the rails. The shell thickness has not been independently measured, so verify the actual orientation and clearance on hardware. The walls follow the `layout_variant` rotation, and the hexagonal cutout keepout follows their adjustable position. Both connector ends remain open for wiring and zip-tie fastening.
+
+## Right-angle HDMI plug clearance
+
+`pi_hdmi_clearance = 11;` reserves an adjustable 11 mm **plan-view gap between the Pi PCB lower edge and the HDMI converter body** in the `stacked` layout. If the original placement is too close, the HDMI adapter cradle, its wall positions, and zip-tie slots all shift together automatically. With the current values the adapter moves 3 mm toward the DC-DC board (from Y=69 to Y=66). This clearance is measured to the board outline rather than the exact HDMI socket/plug protrusion; verify the real orientation and connector envelope in OpenSCAD and on a fit-check before printing. The other layout variants are unchanged.
