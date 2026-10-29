@@ -57,8 +57,14 @@ dc_zip_ties = layout_variant != "stacked"; // stacked layout leaves converter-si
 adapter_body = [60,32];         // ULT-unite body from product diagram
 adapter_origin = layout_variant == "stacked" ? [29,69] : (layout_variant == "compact" ? [112,49] : [109,78]);
 adapter_clearance = 1.5;
-adapter_rail_height = 4;
-adapter_rail_thickness = 2.6;
+// Adapter held EDGE-ON between tall rails. This is a separate measured
+// gap from the 60x32 mm face dimensions; check housing thickness before print.
+adapter_wall_height = 20;      // mm above plate
+adapter_wall_thickness = 2.6;  // mm
+adapter_wall_inner_gap = 16;   // mm clear opening between inner wall faces
+adapter_wall_offset = 0;       // mm: signed shift across short axis
+adapter_wall_along_offset = 0; // mm: signed shift along long axis
+adapter_wall_length = 42;      // mm, leave both connectors accessible
 adapter_zip_slot_width = 4.6;
 adapter_zip_slot_length = 9;
 adapter_zip_positions = [13,43]; // away from connector ends
@@ -147,6 +153,19 @@ function near_adapter(x,y) =
                     ax-2,ay+sy+adapter_zip_slot_width,pad) ||
              in_box(x,y,ax+aw+2,ay+sy,
                     ax+aw+2+adapter_zip_slot_length,ay+sy+adapter_zip_slot_width,pad)) 1])>0));
+function near_adapter_wall(x,y) =
+    let(pad=pattern_hole_diameter/2+3,
+        wallx=adapter_origin[0]+adapter_footprint[0]/2+adapter_wall_offset,
+        wally=adapter_origin[1]+adapter_footprint[1]/2+adapter_wall_offset,
+        longx=adapter_origin[0]+(adapter_footprint[0]-adapter_wall_length)/2+adapter_wall_along_offset,
+        longy=adapter_origin[1]+(adapter_footprint[1]-adapter_wall_length)/2+adapter_wall_along_offset)
+    (!adapter_rotate_90 ?
+     in_box(x,y,longx,wally-adapter_wall_inner_gap/2-adapter_wall_thickness,
+         longx+adapter_wall_length,wally+adapter_wall_inner_gap/2+adapter_wall_thickness,pad)
+      :
+     in_box(x,y,wallx-adapter_wall_inner_gap/2-adapter_wall_thickness,longy,
+        wallx+adapter_wall_inner_gap/2+adapter_wall_thickness,longy+adapter_wall_length,pad));
+
 function near_dc_ties(x,y) =
     dc_zip_ties &&
     x>dc_origin[0]-5 && x<dc_origin[0]+dc_board[0]+5 &&
@@ -168,7 +187,7 @@ module lightening_holes() {
         y>pattern_edge_margin+pattern_hole_diameter/2 &&
         y<plate_depth-pattern_edge_margin-pattern_hole_diameter/2 &&
         !near_pi_post(x,y) && !near_dc_post(x,y) &&
-        !near_adapter(x,y) && !near_dc_ties(x,y) &&
+        !near_adapter(x,y) && !near_adapter_wall(x,y) && !near_dc_ties(x,y) &&
         !near_frame_slots(x,y))
        translate([x,y,-0.1])
          cylinder(h=plate_thickness+0.2,d=pattern_hole_diameter,
@@ -249,22 +268,30 @@ if (dc_screw_mounts)
              plate_thickness,dc_post_height,dc_post_diameter,dc_screw_clearance,
              dc_heat_inserts,dc_insert_pilot_diameter,dc_insert_depth);
 
-// Adapter side rails. Both cable connector ends remain unobstructed.
+// Tall parallel walls holding converter edge-on.
+// Horizontal footprint: walls run X, spacing in Y.
+// Rotated footprint: walls run Y, spacing in X.
+assert(adapter_wall_inner_gap >= 16, "Adapter clear gap must be at least 16 mm");
+assert(adapter_wall_height >= 20, "Adapter wall height must be at least 20 mm");
+assert(adapter_wall_length > 0 &&
+       adapter_wall_length <= (adapter_rotate_90 ? adapter_footprint[1] : adapter_footprint[0]),
+       "Wall length must fit within converter long dimension");
 if (!adapter_rotate_90) {
-    for (dy=[-adapter_clearance-adapter_rail_thickness,
-              adapter_footprint[1]+adapter_clearance])
-        translate([adapter_origin[0]+adapter_rail_end_gap,
-                   adapter_origin[1]+dy,plate_thickness])
-            cube([adapter_footprint[0]-2*adapter_rail_end_gap,
-                  adapter_rail_thickness,adapter_rail_height]);
+    center_y = adapter_origin[1] + adapter_footprint[1]/2 + adapter_wall_offset;
+    start_x  = adapter_origin[0] + (adapter_footprint[0]-adapter_wall_length)/2
+               + adapter_wall_along_offset;
+    for (dy=[-adapter_wall_inner_gap/2-adapter_wall_thickness,
+              adapter_wall_inner_gap/2])
+        translate([start_x,center_y+dy,plate_thickness])
+            cube([adapter_wall_length,adapter_wall_thickness,adapter_wall_height]);
 } else {
-    for (dx=[-adapter_clearance-adapter_rail_thickness,
-              adapter_footprint[0]+adapter_clearance])
-        translate([adapter_origin[0]+dx,
-                   adapter_origin[1]+adapter_rail_end_gap,plate_thickness])
-            cube([adapter_rail_thickness,
-                  adapter_footprint[1]-2*adapter_rail_end_gap,
-                  adapter_rail_height]);
+    center_x = adapter_origin[0] + adapter_footprint[0]/2 + adapter_wall_offset;
+    start_y  = adapter_origin[1] + (adapter_footprint[1]-adapter_wall_length)/2
+               + adapter_wall_along_offset;
+    for (dx=[-adapter_wall_inner_gap/2-adapter_wall_thickness,
+              adapter_wall_inner_gap/2])
+        translate([center_x+dx,start_y,plate_thickness])
+            cube([adapter_wall_thickness,adapter_wall_length,adapter_wall_height]);
 }
 
 // Both adapter ends OPEN: route slim HDMI right-angle plug toward Pi and
