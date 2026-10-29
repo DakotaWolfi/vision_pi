@@ -65,6 +65,13 @@ adapter_wall_inner_gap = 16;   // mm clear opening between inner wall faces
 adapter_wall_offset = 0;       // mm: signed shift across short axis
 adapter_wall_along_offset = 0; // mm: signed shift along long axis
 adapter_wall_length = 42;      // mm, leave both connectors accessible
+// Minimum open gap between Pi PCB edge and HDMI adapter/walls for a 90-degree plug.
+pi_hdmi_clearance = 11; // mm
+// Stacked layout: the Pi sits above the adapter. Preserve 11 mm from its lower edge.
+stacked_adapter_max_y = pi_origin[1] - pi_hdmi_clearance;
+adapter_y_shift = layout_variant == "stacked" ?
+    min(0, stacked_adapter_max_y - (adapter_origin[1]+adapter_footprint[1])) : 0;
+adapter_mount_origin = [adapter_origin[0],adapter_origin[1]+adapter_y_shift];
 adapter_zip_slot_width = 4.6;
 adapter_zip_slot_length = 9;
 adapter_zip_positions = [13,43]; // away from connector ends
@@ -131,7 +138,7 @@ function in_box(x,y,x0,y0,x1,y1,pad=0) =
     x > x0-pad && x < x1+pad && y > y0-pad && y < y1+pad;
 function near_adapter(x,y) =
     let(pad=pattern_hole_diameter/2+2,
-        ax=adapter_origin[0], ay=adapter_origin[1],
+        ax=adapter_mount_origin[0], ay=adapter_mount_origin[1],
         aw=adapter_footprint[0], ah=adapter_footprint[1])
     (!adapter_rotate_90 ?
       (in_box(x,y,ax+adapter_rail_end_gap,ay-adapter_clearance-adapter_rail_thickness,
@@ -155,10 +162,10 @@ function near_adapter(x,y) =
                     ax+aw+2+adapter_zip_slot_length,ay+sy+adapter_zip_slot_width,pad)) 1])>0));
 function near_adapter_wall(x,y) =
     let(pad=pattern_hole_diameter/2+3,
-        wallx=adapter_origin[0]+adapter_footprint[0]/2+adapter_wall_offset,
-        wally=adapter_origin[1]+adapter_footprint[1]/2+adapter_wall_offset,
-        longx=adapter_origin[0]+(adapter_footprint[0]-adapter_wall_length)/2+adapter_wall_along_offset,
-        longy=adapter_origin[1]+(adapter_footprint[1]-adapter_wall_length)/2+adapter_wall_along_offset)
+        wallx=adapter_mount_origin[0]+adapter_footprint[0]/2+adapter_wall_offset,
+        wally=adapter_mount_origin[1]+adapter_footprint[1]/2+adapter_wall_offset,
+        longx=adapter_mount_origin[0]+(adapter_footprint[0]-adapter_wall_length)/2+adapter_wall_along_offset,
+        longy=adapter_mount_origin[1]+(adapter_footprint[1]-adapter_wall_length)/2+adapter_wall_along_offset)
     (!adapter_rotate_90 ?
      in_box(x,y,longx,wally-adapter_wall_inner_gap/2-adapter_wall_thickness,
          longx+adapter_wall_length,wally+adapter_wall_inner_gap/2+adapter_wall_thickness,pad)
@@ -217,20 +224,20 @@ difference() {
     // Two zip-tie pairs, rotated together with the converter footprint.
     if (!adapter_rotate_90) {
         for (sx=adapter_zip_positions) {
-            translate([adapter_origin[0]+sx,
-                       adapter_origin[1]-adapter_zip_slot_length-2,-0.1])
+            translate([adapter_mount_origin[0]+sx,
+                       adapter_mount_origin[1]-adapter_zip_slot_length-2,-0.1])
                 cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
-            translate([adapter_origin[0]+sx,
-                       adapter_origin[1]+adapter_footprint[1]+2,-0.1])
+            translate([adapter_mount_origin[0]+sx,
+                       adapter_mount_origin[1]+adapter_footprint[1]+2,-0.1])
                 cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
         }
     } else {
         for (sy=adapter_zip_positions) {
-            translate([adapter_origin[0]-adapter_zip_slot_length-2,
-                       adapter_origin[1]+sy,-0.1])
+            translate([adapter_mount_origin[0]-adapter_zip_slot_length-2,
+                       adapter_mount_origin[1]+sy,-0.1])
                 cube([adapter_zip_slot_length,adapter_zip_slot_width,plate_thickness+0.2]);
-            translate([adapter_origin[0]+adapter_footprint[0]+2,
-                       adapter_origin[1]+sy,-0.1])
+            translate([adapter_mount_origin[0]+adapter_footprint[0]+2,
+                       adapter_mount_origin[1]+sy,-0.1])
                 cube([adapter_zip_slot_length,adapter_zip_slot_width,plate_thickness+0.2]);
         }
     }
@@ -277,16 +284,16 @@ assert(adapter_wall_length > 0 &&
        adapter_wall_length <= (adapter_rotate_90 ? adapter_footprint[1] : adapter_footprint[0]),
        "Wall length must fit within converter long dimension");
 if (!adapter_rotate_90) {
-    center_y = adapter_origin[1] + adapter_footprint[1]/2 + adapter_wall_offset;
-    start_x  = adapter_origin[0] + (adapter_footprint[0]-adapter_wall_length)/2
+    center_y = adapter_mount_origin[1] + adapter_footprint[1]/2 + adapter_wall_offset;
+    start_x  = adapter_mount_origin[0] + (adapter_footprint[0]-adapter_wall_length)/2
                + adapter_wall_along_offset;
     for (dy=[-adapter_wall_inner_gap/2-adapter_wall_thickness,
               adapter_wall_inner_gap/2])
         translate([start_x,center_y+dy,plate_thickness])
             cube([adapter_wall_length,adapter_wall_thickness,adapter_wall_height]);
 } else {
-    center_x = adapter_origin[0] + adapter_footprint[0]/2 + adapter_wall_offset;
-    start_y  = adapter_origin[1] + (adapter_footprint[1]-adapter_wall_length)/2
+    center_x = adapter_mount_origin[0] + adapter_footprint[0]/2 + adapter_wall_offset;
+    start_y  = adapter_mount_origin[1] + (adapter_footprint[1]-adapter_wall_length)/2
                + adapter_wall_along_offset;
     for (dx=[-adapter_wall_inner_gap/2-adapter_wall_thickness,
               adapter_wall_inner_gap/2])
