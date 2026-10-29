@@ -1,7 +1,8 @@
 // VisionPi — Raspberry Pi 5 electronics carrier
 // Units: mm. Prototype: verify actual component sizes before printing.
 // OpenSCAD: F6 -> Export STL.
-// Layout: Pi USB/Ethernet connectors face +X; HDMI-to-USB-C adapter sits next to that edge.
+// Layout: Pi USB/Ethernet edge points +X; DP adapter sits by the DC-DC board,
+// away from that edge. Leave connector ends clear for slim 90-degree HDMI plugs.
 // No geometry obstructs the Pi underside, fan, or cable connectors.
 // Edit marked parameters to fit the actual DC-DC and HDMI/DP adapter.
 //
@@ -40,14 +41,14 @@ dc_zip_ties = true;
 // HDMI -> USB-C DP Alt-Mode converter: body is zip-tied, not screwed.
 // Sits at +X near Pi's USB/Ethernet edge.
 adapter_body = [60,32];         // ULT-unite body from product diagram
-adapter_origin = [119,28];
+adapter_origin = [109,78];       // near DC-DC, away from Pi USB connector edge
 adapter_clearance = 1.5;
 adapter_rail_height = 4;
 adapter_rail_thickness = 2.6;
 adapter_zip_slot_width = 4.6;
 adapter_zip_slot_length = 9;
-adapter_zip_positions = [12,46]; // from adapter's x origin
-adapter_rail_end_gap = 7;       // clearance for cables
+adapter_zip_positions = [13,43]; // away from connector ends
+adapter_rail_end_gap = 9;       // keep both connector faces accessible
 
 // General mounting slots in plate corners (optional use for headset/frame).
 frame_slot_length = 10;
@@ -136,11 +137,8 @@ for (dy=[-adapter_clearance-adapter_rail_thickness,
         cube([adapter_body[0]-2*adapter_rail_end_gap,
               adapter_rail_thickness,adapter_rail_height]);
 
-// Low adapter end stop at ONE end only; other end open to simplify assembly.
-// Comment out if the cable connector occupies this face.
-translate([adapter_origin[0]-adapter_rail_thickness-adapter_clearance,
-           adapter_origin[1]+2,plate_thickness])
-    cube([adapter_rail_thickness,adapter_body[1]-4,adapter_rail_height]);
+// Both adapter ends OPEN: route slim HDMI right-angle plug toward Pi and
+// USB-C cable toward goggles without a printed end wall.
 
 // NOTE: Power electronics require insulation and airflow. Do not press exposed
 // solder pads against printed plastic or allow cable strain on USB-C ports.
