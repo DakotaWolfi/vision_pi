@@ -1,31 +1,36 @@
-# Vision Paw v0.2 — organic hand-back TPU glove carrier
+# Vision Paw v0.3 — open branching TPU hand mesh
 
-**Replaces the crude v0.1 rectangular sheet.** This is a dimension-driven, curved-in-use glove *shell*, not a fully enclosed fabric glove and not a scan of your hand. It has a tapered wrist, rounded knuckle crown, asymmetric thumb/index wing, TPU flex cuts, a central PETG electronics cartridge, a smaller PETG joystick cartridge, and two optional PCL reinforcement lanes.
+The v0.1/v0.2 solid-plate approach has been replaced. This is an **open, vein-like, interconnected TPU web**, inspired by the user's reference images: irregular large cells, a tapered wrist/forearm section, finger/knuckle edge and thumb-side loop. It prints flat but is intended to drape and flex with the hand.
 
-Source: [vision_paw_flat.scad](vision_paw_flat.scad)
+![No preview embedded](./vision_paw_flat.scad)
 
-## OpenSCAD controls
+## OpenSCAD Customizer
 
-All user-editable parameters are now at the **top** of the file, grouped for the OpenSCAD Customizer:
-- **Output**: `part = "glove_tpu" | "electronics_petg" | "joystick_petg" | "rail_test" | "assembly"`, and `hand = "right" | "left"`.
-- **Hand dimensions**: `knuckle_width`, `wrist_width`, `palm_length`, `thumb_wing`, `deck_width`.
-- **TPU geometry**: `base_thickness`, `flex_bridge_width`, `strap_slot_width`, `strap_width`, `rail_clearance`.
-- **PCL ribs**: `pcl_diameter`, `pcl_channel_length`, `pcl_channel_spacing`.
-- **PETG insert**: `deck_length`, `deck_thickness`, and generic mounting-hole values.
+Parameters are grouped and labeled at the top of `vision_paw_flat.scad`:
 
-Units are **millimetres**, with adult-hand placeholder defaults. These are NOT custom measurements of your hand. No tape is needed just to print a fitting sample; measure with a ruler and string later.
+- `part`: `tpu`, `petg_main`, `petg_joystick`, `all` (export different materials separately).
+- `hand`: right/left mirrored geometry.
+- Hand measurements: `palm_width`, `palm_length`, `wrist_width`, `forearm_extension`, `thumb_reach` (mm).
+- TPU: `vein_width`, `branch_width`, `mesh_thickness`.
+- PETG: generic deck and joystick mounting dimensions.
 
-## Parts / layout
+The wrist is y = 0; palm/knuckles point toward positive Y. Default hand measurements are **placeholders**, not scanned. Hardware mounting holes are **generic interfaces**, NOT verified component footprints.
 
-- TPU glove: flat silhouette, approximately 1.6 mm thick in flexible areas, wrist/knuckle strap openings, and isolated flex slits.
-- PETG electronics deck: nominal 39 × 42 mm central removable cartridge. **Generic 26 × 32 mm M2 holes only**; these are *not* verified footprints of the real OLED, ESP32-S3, LRA board or battery.
-- PETG joystick deck: nominal 24 × 24 mm removable blank with cable hole, on an asymmetric thumb/index wing. No actual Hall joystick pin/fastener geometry yet.
-- PCL: two short, noncontinuous reinforcement lanes outside the central cartridge. The moldable rods supply optional residual curvature, leaving wrist/knuckle flex zones unreinforced.
+## Print and design status
 
-## Print / assembly
+Use OpenSCAD F6 then Export > STL for each part. A locally generated TPU mesh successfully exported to STL and was checked with Trimesh as **watertight, single connected component** (3600 triangular faces) before the GitHub version was authored. The published source has not undergone an independent physical fit test. Start with the TPU web only; iterate before adding electronics.
 
-Set `part="glove_tpu"` and render with **F6** and export STL. Repeat for the two PETG parts. First print `part="rail_test"` to check flexible rail clearance. Print TPU flat on the bed; use PETG for inserts. Strap material and PCL rods are separate, not printable as part of the STL. The PCL rails are intended to retain preformed, cooled rods; a real test may require changes to retention.
+The PETG islands are separate slim screw-mounted plates; they are not fused to the TPU sheet. The main cartridge represents a place to fasten electronics, **not yet a dimensioned ESP32/OLED board holder**. The joystick plate is a minimalist mounting interface rather than a completed joystick shell.
 
-**Prototype status:** The OpenSCAD source has been committed but **has not yet been successfully rendered/physically fit-tested**. Confirm that F6 generates a valid manifold model before printing, and check the fit with no electronics. Do not mistake the simple PCB holes for finished component mounts.
+The v0.3 model deliberately has *no full solid deck*: mounting loads go through localized reinforced nodes. Straps/finger fixation still need a hands-on fit design.
 
-The next iteration should use actual hand dimensions, PCB measurements and real joystick reach. Form-fitting PCL inserts should be shaped away from skin until cooled to a comfortable temperature; the electronics should be detached during any heat forming.
+## PCL / Whitemorph
+
+PCL shaping remains a **planned separate insert**; `pcl_rod_diameter` and `pcl_clip_count` are reserved parameters and do not yet produce channels. The open vein structure can later have individual molded PCL rods along selected branches, leaving wrist and knuckle cells flexible. This needs retention geometry designed after a flex test. Do not interpret the parameters as implemented features.
+
+## Next steps
+
+1. Print a small scaled or partial TPU fit test to check curve/edge comfort.
+2. Measure wrist width, palm width, wrist-to-knuckle length and thumb-side clearance.
+3. Tune branch placement and the flex pattern for the hand.
+4. Design local PCL rod channels and actual PETG mounts for the measured electronics, without turning the web back into a solid plate.
