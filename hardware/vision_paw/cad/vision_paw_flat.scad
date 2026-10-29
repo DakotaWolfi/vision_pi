@@ -102,7 +102,7 @@ module tpu_sheet(){
     strap_cut(s*(hand_w(y)*.43),y);
   // Flexible slits on either side of the rigid electronics island
   for(y=[30,39,palm_length-17],s=[-1,1])
-    lattice_cut(s*(deck_width/2+14),y,12,2.8);
+    lattice_cut(s*(deck_width/2+14),y,flex_bridge_width-1,2.8);
   // Three small ventilation slots across the knuckle bridge
   for(x=[-17,0,17]) lattice_cut(x,palm_length-4,11,3);
  }
