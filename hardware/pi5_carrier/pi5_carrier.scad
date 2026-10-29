@@ -27,26 +27,26 @@ pi_screw_clearance = 2.8;       // M2.5 clearance (adjust for your printer)
 
 // DC-DC module: use measured board/hole geometry!
 // Placed behind Pi, with access around the edges.
-dc_board = [60,26];             // placeholder dimensions; MEASURE
-dc_origin = [15,87];            // lower-left of converter board
-dc_hole_pitch = [54,20];        // placeholder; MEASURE hole centers
-dc_hole_offset = [3,3];         // placeholder; MEASURE
+dc_board = [59,44];             // product overall width/depth
+dc_origin = [20,75];            // beside Pi, not under its cooling
+dc_hole_pitch = [48,33];        // assumed CM4 pitch; verify on real module
+dc_hole_offset = [5.5,5.5];     // centered in 59x44 envelope
 dc_post_height = 6;
 dc_post_diameter = 7;
-dc_screw_clearance = 3.2;       // e.g. M3
-dc_screw_mounts = false;        // set true AFTER measuring board holes
+dc_screw_clearance = 2.8;       // M2.5 mounting-hole clearance
+dc_screw_mounts = true;         // provisional: confirm hole positions before print
 dc_zip_ties = true;
 
 // HDMI -> USB-C DP Alt-Mode converter: body is zip-tied, not screwed.
 // Sits at +X near Pi's USB/Ethernet edge.
-adapter_body = [66,25];         // placeholder body length/width; MEASURE
+adapter_body = [60,32];         // ULT-unite body from product diagram
 adapter_origin = [119,28];
 adapter_clearance = 1.5;
 adapter_rail_height = 4;
 adapter_rail_thickness = 2.6;
 adapter_zip_slot_width = 4.6;
 adapter_zip_slot_length = 9;
-adapter_zip_positions = [13,51]; // from adapter's x origin
+adapter_zip_positions = [12,46]; // from adapter's x origin
 adapter_rail_end_gap = 7;       // clearance for cables
 
 // General mounting slots in plate corners (optional use for headset/frame).
