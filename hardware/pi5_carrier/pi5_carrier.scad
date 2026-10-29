@@ -20,10 +20,10 @@ adapter_rotate_90 = layout_variant == "compact"; // stacked uses horizontal adap
 // solid: original full plate; hex: honeycomb apertures; round: circular holes.
 // The pattern automatically leaves clearance around all mounting features.
 plate_pattern = "hex"; // [hex,round,solid]
-pattern_hole_diameter = 13;      // mm: across corners for hex
-pattern_pitch_x = 20;            // mm between hole centers across rows
-pattern_pitch_y = 18;            // mm between rows
-pattern_edge_margin = 10;        // mm, solid perimeter around plate
+pattern_hole_diameter = 12;      // mm: across corners for hex
+pattern_pitch_x = 17;            // mm between hole centers across rows
+pattern_pitch_y = 15;            // mm between rows
+pattern_edge_margin = 6;        // mm, solid perimeter around plate
 
 // ---- Editable sizes ----
 plate_thickness = 3.0;
@@ -113,17 +113,40 @@ function dist2(x,y,a,b) = (x-a)*(x-a)+(y-b)*(y-b);
 function near_pi_post(x,y) =
     len([for (xx=[0,pi_hole_pitch[0]], yy=[0,pi_hole_pitch[1]])
         if (dist2(x,y,pi_origin[0]+pi_hole_offset[0]+xx,
-                        pi_origin[1]+pi_hole_offset[1]+yy)<pow(12+pattern_hole_diameter/2,2)) 1]) > 0;
+                        pi_origin[1]+pi_hole_offset[1]+yy)<pow(pi_post_diameter/2+3+pattern_hole_diameter/2,2)) 1]) > 0;
 function near_dc_post(x,y) =
     dc_screw_mounts &&
     len([for (xx=[0,dc_hole_pitch[0]], yy=[0,dc_hole_pitch[1]])
         if (dist2(x,y,dc_origin[0]+dc_hole_offset[0]+xx,
-                        dc_origin[1]+dc_hole_offset[1]+yy)<pow(10+pattern_hole_diameter/2,2)) 1]) > 0;
+                        dc_origin[1]+dc_hole_offset[1]+yy)<pow(dc_post_diameter/2+3+pattern_hole_diameter/2,2)) 1]) > 0;
+// Keep the strap slots and two retaining rails, but allow lightening holes
+// UNDER the converter body where no mounting hardware occupies the plate.
+function in_box(x,y,x0,y0,x1,y1,pad=0) =
+    x > x0-pad && x < x1+pad && y > y0-pad && y < y1+pad;
 function near_adapter(x,y) =
-    x > adapter_origin[0]-8-pattern_hole_diameter/2 &&
-    x < adapter_origin[0]+adapter_footprint[0]+8+pattern_hole_diameter/2 &&
-    y > adapter_origin[1]-12-pattern_hole_diameter/2 &&
-    y < adapter_origin[1]+adapter_footprint[1]+12+pattern_hole_diameter/2;
+    let(pad=pattern_hole_diameter/2+2,
+        ax=adapter_origin[0], ay=adapter_origin[1],
+        aw=adapter_footprint[0], ah=adapter_footprint[1])
+    (!adapter_rotate_90 ?
+      (in_box(x,y,ax+adapter_rail_end_gap,ay-adapter_clearance-adapter_rail_thickness,
+                  ax+aw-adapter_rail_end_gap,ay-adapter_clearance,pad) ||
+       in_box(x,y,ax+adapter_rail_end_gap,ay+ah+adapter_clearance,
+                  ax+aw-adapter_rail_end_gap,ay+ah+adapter_clearance+adapter_rail_thickness,pad) ||
+       len([for(sx=adapter_zip_positions)
+          if (in_box(x,y,ax+sx,ay-adapter_zip_slot_length-2,
+                     ax+sx+adapter_zip_slot_width,ay-2,pad) ||
+              in_box(x,y,ax+sx,ay+ah+2,
+                     ax+sx+adapter_zip_slot_width,ay+ah+2+adapter_zip_slot_length,pad)) 1])>0)
+      :
+      (in_box(x,y,ax-adapter_clearance-adapter_rail_thickness,ay+adapter_rail_end_gap,
+                  ax-adapter_clearance,ay+ah-adapter_rail_end_gap,pad) ||
+       in_box(x,y,ax+aw+adapter_clearance,ay+adapter_rail_end_gap,
+                  ax+aw+adapter_clearance+adapter_rail_thickness,ay+ah-adapter_rail_end_gap,pad) ||
+       len([for(sy=adapter_zip_positions)
+          if(in_box(x,y,ax-adapter_zip_slot_length-2,ay+sy,
+                    ax-2,ay+sy+adapter_zip_slot_width,pad) ||
+             in_box(x,y,ax+aw+2,ay+sy,
+                    ax+aw+2+adapter_zip_slot_length,ay+sy+adapter_zip_slot_width,pad)) 1])>0));
 function near_dc_ties(x,y) =
     dc_zip_ties &&
     x>dc_origin[0]-5 && x<dc_origin[0]+dc_board[0]+5 &&
