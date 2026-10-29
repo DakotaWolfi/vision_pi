@@ -5,7 +5,7 @@ Parametric OpenSCAD mounting plate for a Raspberry Pi 5, the 12 V to 5 V DC-DC c
 ## Arrangement
 
 - Pi 5 at the front-left; USB/Ethernet connector edge points right (+X).
-- HDMI-to-USB-C adapter in a low cradle to the **right of the Pi**, close to its USB connector edge. Housing is **60 × 32 mm** according to the product diagram; thickness remains unknown. Two pairs of slots accept zip ties. Keep the converter's HDMI and USB-C ends unobstructed.
+- HDMI-to-USB-C adapter in a low cradle **beside the DC-DC module, behind/above the Pi**, away from the Pi USB/Ethernet connector edge. Housing is **60 × 32 mm** according to the product diagram; thickness remains unknown. Two pairs of slots accept zip ties. **Both connector ends are open** for short/slim 90° HDMI adapters and a possible right-angle USB-C lead.
 - DC-DC converter behind the Pi. Product listing shows **59 × 44 mm overall**, with a **55 × 40 mm PCB-like interior** and about **22 mm overall height including fan**. Four screw posts are enabled, using a **provisional 48 × 33 mm M2.5 CM4-style hole pitch**; check actual hole centers before printing. Alternative zip-tie slots are included.
 - Four raised Pi 5 mounting posts using the standard 58 x 49 mm pitch, with M2.5 clearance bores.
 - Four elongated plate-to-frame mounting slots.
@@ -26,3 +26,10 @@ Render with **F6**, then export STL. Print a fit-check before committing to perm
 ## Safety / wiring
 
 Keep the Pi's underside above the plate and avoid contact between exposed converter pads and conductive items. Provide strain relief on HDMI, USB-C and power leads. Do not cover the Pi fan/heatsink or block converter cooling. The printed plate is a mechanical carrier, not an electrical enclosure or qualified high-temperature mount.
+
+## Cable routing (revision)
+
+- Keep the Pi's micro-HDMI exits accessible for slim 90° adapters. Check the actual direction of the angled plugs: left-hand and right-hand variants can route in opposite directions.
+- The HDMI-to-USB-C adapter now sits beside the power converter, rather than directly beside the Pi's USB/Ethernet stack. Its HDMI and USB-C connector faces have no printed end stop.
+- Leave a bend-radius and unplugging allowance for the Pi's power USB-C cable, the power converter's DC input, the HDMI adapter's USB-C output cable to the goggles, and any USB peripherals. Optional right-angle USB-C plugs must be checked for orientation and current rating.
+- CAD positions are still an early prototype. Check actual Pi connector orientation and cable interference with a printed fit test; neither connector clearance nor cable strain relief is guaranteed by the 2D board dimensions alone.
