@@ -69,3 +69,18 @@ The plate keeps patterned hex/round holes while reserving solid mount regions. T
 **Verify with your actual inserts:** M2.5 brass heat-set insert brands need different pilot diameters, depths and installation tolerances. Measure one and print a standalone test boss before committing to the whole carrier. For heat-set mode the blind pocket is intentionally closed by the base plate.
 
 **Verification state:** GitHub source was updated, but full OpenSCAD render/export in the current environment could not be completed. This is a layout prototype, not a tested print.
+
+## HDMI adapter tall retaining walls
+
+The adapter now has a **separate edge-on wall configuration**, with the following editable values in `pi5_carrier.scad`:
+
+```scad
+adapter_wall_height = 20;
+adapter_wall_inner_gap = 16;
+adapter_wall_thickness = 2.6;
+adapter_wall_offset = 0;
+adapter_wall_along_offset = 0;
+adapter_wall_length = 42;
+```
+
+The wall spacing is the **16 mm clear opening between the two inner faces**, not the adapter's 60 × 32 mm face width. The adapter is assumed to be mounted on its narrow edge between the rails. The shell thickness has not been independently measured, so verify the actual orientation and clearance on hardware. The walls follow the `layout_variant` rotation, and the hexagonal cutout keepout follows their adjustable position. Both connector ends remain open for wiring and zip-tie fastening.
