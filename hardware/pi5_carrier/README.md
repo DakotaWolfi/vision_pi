@@ -43,3 +43,11 @@ The carrier now defaults to an open **hexagonal cutout pattern** rather than a f
 - `pattern_edge_margin = 10` mm for a continuous perimeter.
 
 Holes are skipped near the Pi 5 and provisional DC-DC mounting posts, the HDMI-to-USB-C converter cradle and zip-tie slots, DC-DC tie slots, and frame mounts. This is a **lightening pattern**, not a validated structural optimization: check the printed plate's stiffness, material, and fit. Save a solid STL as a fallback if needed.
+
+## Compact layout (90° adapter)
+
+Set `layout_variant = "compact"` (the new default) to use a **160 × 124 mm** plate instead of 198 × 124 mm. The Pi 5 remains at the lower-left; DC-DC stays above it; the 60 × 32 mm HDMI-to-USB-C adapter is rotated to a **32 × 60 mm** footprint at approximately X=112, Y=49. The cradle rails and zip-tie slots rotate with it. The adapter keepout for the lightweight hex/round pattern uses the rotated footprint.
+
+Set `layout_variant = "wide"` to restore the original 198 × 124 mm landscape layout, horizontally mounted adapter and original clearances. This retains both versions in the *same* editable OpenSCAD file.
+
+**Fit checks before printing:** confirm the adapter's true connector direction and room for the 90° micro-HDMI leads; the power module mounting pitch is still provisional. The compact geometry has not been physically test-fitted.
