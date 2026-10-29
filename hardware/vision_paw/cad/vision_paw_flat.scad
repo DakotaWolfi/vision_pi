@@ -1,189 +1,142 @@
-// VISION PAW — organic flat-print hand-back glove v0.2
-// Units: mm. Each setting below appears in OpenSCAD Customizer.
-// The flat TPU bends around the hand; optional removable PCL ribs hold a fitted curve.
-// Experimental hand-shaped pattern, NOT a scan or guaranteed anatomical fit.
+// Vision Paw v0.3 - open, vein-like TPU hand mesh, printed flat.
+// ALL parameters in millimetres. Designed for OpenSCAD Customizer.
 
-// ==== OUTPUT ==========================================================
 /* [Output] */
-// Export one material at a time. "assembly" spaces both parts for preview.
-part = "assembly"; // [assembly,glove_tpu,electronics_petg,joystick_petg,rail_test]
+part = "tpu"; // [tpu,petg_main,petg_joystick,all]
 hand = "right"; // [right,left]
 
-// ==== YOUR HAND (measure with ruler/string later) ======================
-/* [Hand dimensions] */
-// Across knuckles, excluding thumb
-knuckle_width = 83; // [60:1:115]
-// Wrist width, side to side, not circumference
-wrist_width = 57; // [40:1:85]
-// Wrist crease to knuckle line
-palm_length = 93; // [65:1:130]
-// How far thumb-side support protrudes
-thumb_wing = 23; // [8:1:38]
-// Width of central hand-back platform
-deck_width = 39; // [28:1:60]
+/* [Hand measurements] */
+palm_width = 85; // [65:1:110]
+palm_length = 95; // [70:1:125]
+wrist_width = 58; // [40:1:80]
+forearm_extension = 52; // [25:1:90]
+thumb_reach = 26; // [12:1:45]
 
-// ==== FLEXIBLE SHELL ==================================================
-/* [TPU geometry] */
-base_thickness = 1.6; // [1.0:0.2:3.0]
-flex_bridge_width = 13; // [7:1:22]
-strap_slot_width = 4.5; // [3:0.5:7]
-strap_width = 18; // [10:1:28]
-rail_clearance = 0.6; // [0.2:0.1:1.2]
+/* [Flexible TPU mesh] */
+vein_width = 5; // [3:0.5:8]
+branch_width = 3.5; // [2:0.5:6]
+mesh_thickness = 2; // [1.2:0.2:3.5]
+node_radius = 4.6; // [3:0.5:8]
 
-// ==== REMOLDABLE PCL STIFFENERS =======================================
-/* [PCL ribs] */
-// PCL rods are captured with flexible strap clips; do not bond the rods in.
-pcl_diameter = 3.5; // [2:0.5:6]
-pcl_channel_length = 39; // [25:1:53]
-pcl_channel_spacing = 29; // [22:1:43]
+/* [Removable PETG islands] */
+main_mount_width = 36; // [25:1:48]
+main_mount_length = 37; // [28:1:50]
+joystick_mount_diameter = 21; // [16:1:28]
+mount_hole_diameter = 2.7; // [2:0.1:4]
+petg_thickness = 2.4; // [1.5:0.1:4]
 
-// ==== REMOVABLE ELECTRONICS MOUNTS ===================================
-/* [PETG insert] */
-deck_length = 42; // [30:1:60]
-deck_thickness = 2.0; // [1.5:0.2:3.5]
-generic_hole_pitch_x = 26; // [14:1:40]
-generic_hole_pitch_y = 32; // [15:1:48]
-generic_hole_diameter = 2.4; // [2:0.1:3.5]
-joystick_plate_size = 24; // [18:1:36]
+/* [PCL form shaping] */
+pcl_rod_diameter = 3.5; // [2:0.5:6]
+pcl_clip_count = 3; // [0:1:5]
 
-// ==== INTERNAL ========================================================
-$fn = 48;
-eps = 0.02;
-mirror_sign = hand == "right" ? -1 : 1;
-function side_x(x) = mirror_sign*x;
-function hand_w(y) = wrist_width + (knuckle_width-wrist_width)*min(1,max(0,y/palm_length));
-
-// Smooth, asymmetric silhouette with wrist, knuckle crown, thumb-side wing.
-// x=0 is hand center; y=0 wrist crease, y=palm_length knuckles.
-module smooth_hull(a,b,r1,r2) {
- hull(){
-  translate(a) circle(r=r1);
-  translate(b) circle(r=r2);
+$fn=36;
+mirror_x = hand=="right" ? 1 : -1;
+function P(p) = [p[0]*mirror_x,p[1]];
+module bone(a,b,wd=vein_width) {
+  hull(){translate(P(a)) circle(d=wd);translate(P(b)) circle(d=wd);}
+}
+module n(p,diam=node_radius*2){translate(P(p)) circle(d=diam);}
+module loop_path(pts,wd=vein_width){
+  for(i=[0:len(pts)-2]) bone(pts[i],pts[i+1],wd);
+  bone(pts[len(pts)-1],pts[0],wd);
+}
+module veins2d(){
+ w=palm_width/2; r=wrist_width/2; f=forearm_extension;
+ loop_path([[-r*.8,-f],[-r,-f*.65],[-r*.88,-f*.24],[-w*.72,5],[-w*.95,32],
+ [-w*.90,palm_length*.66],[-w*.56,palm_length*.95],[0,palm_length],
+ [w*.56,palm_length*.95],[w*.92,palm_length*.7],[w*.89,32],[w*.73,5],
+ [r*.88,-f*.24],[r,-f*.65],[r*.8,-f]]);
+ bone([-r*.8,-f],[-r*.28,-f*.65]);bone([r*.8,-f],[r*.28,-f*.65]);
+ bone([-r*.28,-f*.65],[0,-f*.30]);bone([r*.28,-f*.65],[0,-f*.30]);
+ bone([-r,-f*.65],[-r*.35,-f*.12]);bone([r,-f*.65],[r*.35,-f*.12]);
+ bone([-r*.35,-f*.12],[-w*.72,5]);bone([r*.35,-f*.12],[w*.73,5]);
+ bone([-r*.35,-f*.12],[0,16]);bone([r*.35,-f*.12],[0,16]);
+ bone([-w*.72,5],[-w*.30,30]);bone([w*.73,5],[w*.30,30]);
+ bone([-w*.30,30],[0,16]);bone([w*.30,30],[0,16]);
+ bone([-w*.95,32],[-w*.3,30]);bone([w*.89,32],[w*.3,30]);
+ bone([-w*.30,30],[-w*.76,palm_length*.58]);
+ bone([w*.30,30],[w*.75,palm_length*.58]);
+ bone([-w*.76,palm_length*.58],[-w*.34,palm_length*.74]);
+ bone([w*.75,palm_length*.58],[w*.30,palm_length*.76]);
+ bone([-w*.34,palm_length*.74],[0,palm_length*.61]);
+ bone([w*.30,palm_length*.76],[0,palm_length*.61]);
+ bone([0,palm_length*.61],[-w*.56,palm_length*.95]);
+ bone([0,palm_length*.61],[w*.56,palm_length*.95]);
+ bone([0,palm_length*.61],[0,palm_length]);
+ bone([-w*.95,32],[0,palm_length*.61],branch_width);
+ bone([w*.89,32],[0,palm_length*.61],branch_width);
+ bone([-r*.35,-f*.12],[r*.30,30],branch_width);
+ bone([r*.35,-f*.12],[-w*.3,30],branch_width);
+ // Asymmetric thumb/index wing, part of mesh rather than a solid lobe.
+ loop_path([[w*.89,32],[w*.95,palm_length*.61],
+  [w+thumb_reach*.70,palm_length*.74],[w+thumb_reach,palm_length*.91],
+  [w+thumb_reach*.47,palm_length*.97],[w*.56,palm_length*.95],
+  [w*.30,palm_length*.76]],branch_width);
+ bone([w*.95,palm_length*.61],[w+thumb_reach*.47,palm_length*.97],branch_width);
+ for(y=[-f*.54,palm_length*.36],side=[-1,1]){
+   px=side*(y<0?r*.94:w*.91);n([px,y],10);
  }
 }
-module glove_outline(){
- union(){
-   // main palm with tapered wrist and rounded knuckle crown
-   hull(){
-    translate([0,5]) scale([wrist_width/2,12]) circle(r=1);
-    translate([0,palm_length*.51]) scale([knuckle_width*.51,22]) circle(r=1);
-    translate([0,palm_length-8]) scale([knuckle_width*.49,14]) circle(r=1);
-   }
-   // thumb-index saddle, two organic lobes joined to main area
-   hull(){
-    translate([side_x(knuckle_width*.34),palm_length*.65]) circle(r=13);
-    translate([side_x(knuckle_width*.50+thumb_wing*.57),palm_length*.76]) circle(r=9);
-    translate([side_x(knuckle_width*.34),palm_length*.88]) circle(r=10);
-   }
-   // shorter dorsal wrist tail
-   hull(){
-    translate([0,4]) scale([wrist_width*.43,10]) circle(r=1);
-    translate([0,-12]) scale([wrist_width*.31,9]) circle(r=1);
-   }
+module fastener_holes2d(){
+ w=palm_width/2;r=wrist_width/2;f=forearm_extension;
+ for(y=[-f*.54,palm_length*.36],side=[-1,1]){
+   px=side*(y<0?r*.94:w*.91);
+   translate(P([px,y])) circle(d=3.3);
  }
 }
-module capsule(l,w){hull(){
- translate([-l/2+w/2,0]) circle(d=w);
- translate([l/2-w/2,0]) circle(d=w);
-}}
-module strap_cut(x,y){
- translate([x,y,-eps]) linear_extrude(height=base_thickness+2*eps)
-   rotate(90) capsule(strap_width,strap_slot_width);
+module island_anchors2d(){
+ y=palm_length*.48;
+ for(x=[-main_mount_width/2+4,main_mount_width/2-4],
+     dy=[-main_mount_length/2+4,main_mount_length/2-4]){
+   bone([x,y+dy],[x*1.45,y+dy+(dy<0?-8:8)],branch_width);
+   n([x,y+dy],9);
+ }
+ for(dy=[-joystick_mount_diameter*.28,joystick_mount_diameter*.28]){
+   n([palm_width/2+thumb_reach*.45,palm_length*.80+dy],8);
+   bone([palm_width/2+thumb_reach*.45,palm_length*.80+dy],
+        [palm_width*.46,palm_length*.77+dy],branch_width);
+ }
 }
-module lattice_cut(x,y,l=14,w=3){
- translate([x,y,-eps]) linear_extrude(height=base_thickness+2*eps)
-   capsule(l,w);
+module anchor_holes2d(){
+ y=palm_length*.48;
+ for(x=[-main_mount_width/2+4,main_mount_width/2-4],
+     dy=[-main_mount_length/2+4,main_mount_length/2-4])
+    translate(P([x,y+dy])) circle(d=mount_hole_diameter);
+ for(dy=[-joystick_mount_diameter*.28,joystick_mount_diameter*.28])
+    translate(P([palm_width/2+thumb_reach*.45,palm_length*.80+dy]))
+       circle(d=mount_hole_diameter);
 }
-module tpu_sheet(){
+module tpu_mesh(){
+ linear_extrude(mesh_thickness)
+ difference(){union(){veins2d();island_anchors2d();}
+ fastener_holes2d();anchor_holes2d();}
+}
+module main_plate(){
  difference(){
-  linear_extrude(base_thickness) glove_outline();
-  // Pair of curved strap anchor slots at wrist and proximal palm edges.
-  for(y=[12,palm_length*.58], s=[-1,1])
-    strap_cut(s*(hand_w(y)*.43),y);
-  // Flexible slits on either side of the rigid electronics island
-  for(y=[30,39,palm_length-17],s=[-1,1])
-    lattice_cut(s*(deck_width/2+14),y,flex_bridge_width-1,2.8);
-  // Three small ventilation slots across the knuckle bridge
-  for(x=[-17,0,17]) lattice_cut(x,palm_length-4,11,3);
+ linear_extrude(petg_thickness) hull()
+  for(x=[-main_mount_width/2+4,main_mount_width/2-4],
+      y=[-main_mount_length/2+4,main_mount_length/2-4])
+    translate([x,y]) circle(r=4);
+ for(x=[-main_mount_width/2+4,main_mount_width/2-4],
+     y=[-main_mount_length/2+4,main_mount_length/2-4])
+    translate([x,y,-.1]) cylinder(h=petg_thickness+.2,d=mount_hole_diameter);
  }
 }
-// Straight slide-in PETG cartridge with TWO open ends, soft side walls and
-// intermittent TPU-overhang tabs. No permanent mount for actual electronics yet.
-module deck_socket(){
- L=deck_length;
- W=deck_width;
- y0=palm_length*.46;
- for(s=[-1,1]){
-   translate([s*(W/2+rail_clearance+1.7)-1.7,y0-L/2,base_thickness])
-      cube([3.4,L,2.4]);
-   // three intermittent inward lips for easier TPU assembly/printing
-   for(dy=[4,L/2,L-4])
-     translate([s*(W/2+rail_clearance+1.7)-1.7,
-                y0-L/2+dy-2,base_thickness+2.1])
-        cube([3.4,4,0.8]);
- }
- // soft stop at far end
- translate([-W/2,y0+L/2,base_thickness])
-   cube([W,2.2,1.9]);
-}
-// Removable PCL longitudinal ribs retained by small TPU clip bridges.
-// Channels intentionally stop short of wrist and knuckles.
-// Open-bottom grooves leave much of carrier TPU able to flex.
-module pcl_retainer(x){
- y0=palm_length*.47-pcl_channel_length/2;
- wall=1.4;
- for(s=[-1,1])
-   translate([x+s*(pcl_diameter/2+wall/2+.35)-wall/2,y0,base_thickness])
-      cube([wall,pcl_channel_length,2.4]);
- for(y=[y0+5,y0+pcl_channel_length-5])
-   translate([x-pcl_diameter/2-wall,y,base_thickness+2.2])
-      cube([pcl_diameter+2*wall,2.4,0.9]);
-}
-module tpu(){
- union(){
-  tpu_sheet();
-  deck_socket();
-  for(s=[-1,1]) pcl_retainer(s*pcl_channel_spacing/2+ s*(deck_width/2+7));
-  // TPU pocket for joystick plate, on index/thumb wing
-  x=side_x(knuckle_width*.45+thumb_wing*.38);
-  y=palm_length*.78;
-  for(s=[-1,1])
-   translate([x+s*(joystick_plate_size/2+1.0)-1.4,
-              y-joystick_plate_size/2,base_thickness])
-    cube([2.8,joystick_plate_size,2.6]);
- }
-}
-module petg_deck(){
+module joystick_plate(){
  difference(){
-  translate([-deck_width/2,-deck_length/2,0])
-   linear_extrude(deck_thickness)
-     offset(r=2) offset(delta=-2) square([deck_width,deck_length]);
-  // mounting holes are GENERIC: not an ESP32 or OLED footprint
-  for(x=[-generic_hole_pitch_x/2,generic_hole_pitch_x/2],
-      y=[-generic_hole_pitch_y/2,generic_hole_pitch_y/2])
-   translate([x,y,-eps]) cylinder(h=deck_thickness+2*eps,d=generic_hole_diameter);
+ linear_extrude(petg_thickness) hull(){
+  translate([0,-joystick_mount_diameter*.28]) circle(d=9);
+  translate([0,joystick_mount_diameter*.28]) circle(d=9);
+ }
+ for(y=[-joystick_mount_diameter*.28,joystick_mount_diameter*.28])
+  translate([0,y,-.1]) cylinder(d=mount_hole_diameter,h=petg_thickness+.2);
  }
 }
-module joystick_deck(){
- difference(){
-  translate([-joystick_plate_size/2,-joystick_plate_size/2,0])
-   linear_extrude(deck_thickness)
-     offset(r=3) offset(delta=-3) square([joystick_plate_size,joystick_plate_size]);
-  translate([0,0,-eps]) cylinder(h=deck_thickness+2*eps,d=4); // cable pass-through
- }
-}
-if(part=="glove_tpu") tpu();
-else if(part=="electronics_petg") petg_deck();
-else if(part=="joystick_petg") joystick_deck();
-else if(part=="rail_test"){
- intersection(){
-  tpu();
-  translate([-deck_width/2-6,palm_length*.46-10,-eps])
-    cube([deck_width+12,20,base_thickness+6]);
- }
-}
-else {
- tpu();
- translate([knuckle_width+43,deck_length/2+5,0]) petg_deck();
- translate([knuckle_width+43,-joystick_plate_size/2-10,0]) joystick_deck();
+if(part=="tpu") tpu_mesh();
+else if(part=="petg_main") main_plate();
+else if(part=="petg_joystick") joystick_plate();
+else{
+ tpu_mesh();
+ translate([palm_width+thumb_reach+30,0,0]) main_plate();
+ translate([palm_width+thumb_reach+30,-palm_length*.5,0]) joystick_plate();
 }
