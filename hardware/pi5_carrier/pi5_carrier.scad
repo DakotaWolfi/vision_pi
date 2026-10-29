@@ -12,8 +12,8 @@
 $fn = 48;
 
 // Layout variants: both retain mounting holes and perforations.
-layout_variant = "compact"; // [compact,wide]
-adapter_rotate_90 = layout_variant == "compact";
+layout_variant = "stacked"; // [stacked,compact,wide]
+adapter_rotate_90 = layout_variant == "compact"; // stacked uses horizontal adapter between boards
 
 
 // ---- Lightweight plate options ----
@@ -28,34 +28,34 @@ pattern_edge_margin = 10;        // mm, solid perimeter around plate
 // ---- Editable sizes ----
 plate_thickness = 3.0;
 margin = 9;
-plate_width = layout_variant == "compact" ? 160 : 198;
-plate_depth = 124;
+plate_width = layout_variant == "stacked" ? 112 : (layout_variant == "compact" ? 160 : 198);
+plate_depth = layout_variant == "stacked" ? 178 : 124;
 corner_radius = 6;
 
 pi_board = [85,56];
-pi_origin = [12,12];            // lower-left of Pi board outline
+pi_origin = layout_variant == "stacked" ? [12,109] : [12,12];            // lower-left of Pi board outline
 pi_hole_pitch = [58,49];
 pi_hole_offset = [3.5,3.5];
 pi_post_height = 7;
-pi_post_diameter = 7.5;
+pi_post_diameter = 8.0; // adjustable overall boss outside diameter
 pi_screw_clearance = 2.8;       // M2.5 clearance (adjust for your printer)
 
 // DC-DC module: use measured board/hole geometry!
 // Placed behind Pi, with access around the edges.
 dc_board = [59,44];             // product overall width/depth
-dc_origin = [20,75];            // beside Pi, not under its cooling
+dc_origin = layout_variant == "stacked" ? [15,10] : [20,75];            // beside Pi, not under its cooling
 dc_hole_pitch = [48,33];        // assumed CM4 pitch; verify on real module
 dc_hole_offset = [5.5,5.5];     // centered in 59x44 envelope
 dc_post_height = 6;
-dc_post_diameter = 7;
+dc_post_diameter = 8.0; // adjustable overall boss outside diameter
 dc_screw_clearance = 2.8;       // M2.5 mounting-hole clearance
 dc_screw_mounts = true;         // provisional: confirm hole positions before print
-dc_zip_ties = true;
+dc_zip_ties = layout_variant != "stacked"; // stacked layout leaves converter-side wiring free
 
 // HDMI -> USB-C DP Alt-Mode converter: body is zip-tied, not screwed.
 // Sits at +X near Pi's USB/Ethernet edge.
 adapter_body = [60,32];         // ULT-unite body from product diagram
-adapter_origin = layout_variant == "compact" ? [112,49] : [109,78];
+adapter_origin = layout_variant == "stacked" ? [29,69] : (layout_variant == "compact" ? [112,49] : [109,78]);
 adapter_clearance = 1.5;
 adapter_rail_height = 4;
 adapter_rail_thickness = 2.6;
@@ -64,6 +64,17 @@ adapter_zip_slot_length = 9;
 adapter_zip_positions = [13,43]; // away from connector ends
 adapter_rail_end_gap = 9;       // keep both connector faces accessible
 adapter_footprint = adapter_rotate_90 ? [adapter_body[1], adapter_body[0]] : adapter_body;
+
+// Independent mounting-hole mode: plain through-hole or heat-set threaded insert.
+// Heat-set pilot is BLIND in the standoff; only use inserts matched to your hardware.
+pi_heat_inserts = false; // [true,false]
+dc_heat_inserts = false; // [true,false]
+pi_insert_pilot_diameter = 3.5; // verify against M2.5 insert datasheet
+dc_insert_pilot_diameter = 3.5; // verify against M2.5 insert datasheet
+pi_insert_depth = 4.0;
+dc_insert_depth = 4.0;
+insert_lead_in = 0.2; // extra mouth radius for insertion
+// Enforce closed bottom in insert mode by not boring the base plate.
 
 // General mounting slots in plate corners (optional use for headset/frame).
 frame_slot_length = 10;
@@ -79,10 +90,20 @@ module round_slot(length,diameter,height) {
     hull() for (dx=[-length/2+diameter/2,length/2-diameter/2])
         translate([dx,0,0]) cylinder(h=height,d=diameter);
 }
-module post(x,y,z,height,outer_d,inner_d) {
+module post(x,y,z,height,outer_d,inner_d,heat_insert=false,pilot_d=3.5,pilot_depth=4) {
+    assert(outer_d >= pilot_d+2.4, "Boss too thin around insert pilot");
+    assert(!heat_insert || pilot_depth < height, "Insert pocket must leave a solid floor");
     translate([x,y,z]) difference() {
         cylinder(h=height,d=outer_d);
-        translate([0,0,-0.1]) cylinder(h=height+0.2,d=inner_d);
+        if (heat_insert) {
+            // top-accessible blind insert pilot, with a small lead-in
+            translate([0,0,height-pilot_depth])
+                cylinder(h=pilot_depth+0.2,d=pilot_d);
+            translate([0,0,height-0.4])
+                cylinder(h=0.5,d1=pilot_d,d2=pilot_d+2*insert_lead_in);
+        } else
+            translate([0,0,-0.1])
+                cylinder(h=height+0.2,d=inner_d);
     }
 }
 
@@ -139,12 +160,13 @@ difference() {
     lightening_holes();
 
     // Screw shaft clearance through base, so screws aren't blind.
+    if (!pi_heat_inserts)
     for (xx=[0,pi_hole_pitch[0]], yy=[0,pi_hole_pitch[1]])
         translate([pi_origin[0]+pi_hole_offset[0]+xx,
                    pi_origin[1]+pi_hole_offset[1]+yy,-0.1])
             cylinder(h=plate_thickness+0.2,d=pi_screw_clearance);
 
-    if (dc_screw_mounts)
+    if (dc_screw_mounts && !dc_heat_inserts)
         for (xx=[0,dc_hole_pitch[0]], yy=[0,dc_hole_pitch[1]])
             translate([dc_origin[0]+dc_hole_offset[0]+xx,
                        dc_origin[1]+dc_hole_offset[1]+yy,-0.1])
@@ -193,14 +215,16 @@ difference() {
 for (xx=[0,pi_hole_pitch[0]], yy=[0,pi_hole_pitch[1]])
     post(pi_origin[0]+pi_hole_offset[0]+xx,
          pi_origin[1]+pi_hole_offset[1]+yy,
-         plate_thickness,pi_post_height,pi_post_diameter,pi_screw_clearance);
+         plate_thickness,pi_post_height,pi_post_diameter,pi_screw_clearance,
+         pi_heat_inserts,pi_insert_pilot_diameter,pi_insert_depth);
 
 // DC-DC standoffs optional; enable only after measuring its holes.
 if (dc_screw_mounts)
     for (xx=[0,dc_hole_pitch[0]], yy=[0,dc_hole_pitch[1]])
         post(dc_origin[0]+dc_hole_offset[0]+xx,
              dc_origin[1]+dc_hole_offset[1]+yy,
-             plate_thickness,dc_post_height,dc_post_diameter,dc_screw_clearance);
+             plate_thickness,dc_post_height,dc_post_diameter,dc_screw_clearance,
+             dc_heat_inserts,dc_insert_pilot_diameter,dc_insert_depth);
 
 // Adapter side rails. Both cable connector ends remain unobstructed.
 if (!adapter_rotate_90) {
