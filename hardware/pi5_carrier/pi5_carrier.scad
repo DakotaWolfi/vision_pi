@@ -11,6 +11,11 @@
 
 $fn = 48;
 
+// Layout variants: both retain mounting holes and perforations.
+layout_variant = "compact"; // [compact,wide]
+adapter_rotate_90 = layout_variant == "compact";
+
+
 // ---- Lightweight plate options ----
 // solid: original full plate; hex: honeycomb apertures; round: circular holes.
 // The pattern automatically leaves clearance around all mounting features.
@@ -23,7 +28,7 @@ pattern_edge_margin = 10;        // mm, solid perimeter around plate
 // ---- Editable sizes ----
 plate_thickness = 3.0;
 margin = 9;
-plate_width = 198;
+plate_width = layout_variant == "compact" ? 160 : 198;
 plate_depth = 124;
 corner_radius = 6;
 
@@ -50,7 +55,7 @@ dc_zip_ties = true;
 // HDMI -> USB-C DP Alt-Mode converter: body is zip-tied, not screwed.
 // Sits at +X near Pi's USB/Ethernet edge.
 adapter_body = [60,32];         // ULT-unite body from product diagram
-adapter_origin = [109,78];       // near DC-DC, away from Pi USB connector edge
+adapter_origin = layout_variant == "compact" ? [112,49] : [109,78];
 adapter_clearance = 1.5;
 adapter_rail_height = 4;
 adapter_rail_thickness = 2.6;
@@ -58,6 +63,7 @@ adapter_zip_slot_width = 4.6;
 adapter_zip_slot_length = 9;
 adapter_zip_positions = [13,43]; // away from connector ends
 adapter_rail_end_gap = 9;       // keep both connector faces accessible
+adapter_footprint = adapter_rotate_90 ? [adapter_body[1], adapter_body[0]] : adapter_body;
 
 // General mounting slots in plate corners (optional use for headset/frame).
 frame_slot_length = 10;
@@ -94,9 +100,9 @@ function near_dc_post(x,y) =
                         dc_origin[1]+dc_hole_offset[1]+yy)<pow(10+pattern_hole_diameter/2,2)) 1]) > 0;
 function near_adapter(x,y) =
     x > adapter_origin[0]-8-pattern_hole_diameter/2 &&
-    x < adapter_origin[0]+adapter_body[0]+8+pattern_hole_diameter/2 &&
+    x < adapter_origin[0]+adapter_footprint[0]+8+pattern_hole_diameter/2 &&
     y > adapter_origin[1]-12-pattern_hole_diameter/2 &&
-    y < adapter_origin[1]+adapter_body[1]+12+pattern_hole_diameter/2;
+    y < adapter_origin[1]+adapter_footprint[1]+12+pattern_hole_diameter/2;
 function near_dc_ties(x,y) =
     dc_zip_ties &&
     x>dc_origin[0]-5 && x<dc_origin[0]+dc_board[0]+5 &&
@@ -144,14 +150,25 @@ difference() {
                        dc_origin[1]+dc_hole_offset[1]+yy,-0.1])
                 cylinder(h=plate_thickness+0.2,d=dc_screw_clearance);
 
-    // Two slots per tie, either side of adapter body.
-    for (sx=adapter_zip_positions) {
-        translate([adapter_origin[0]+sx,
-                   adapter_origin[1]-adapter_zip_slot_length/2-2,-0.1])
-            cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
-        translate([adapter_origin[0]+sx,
-                   adapter_origin[1]+adapter_body[1]+2-adapter_zip_slot_length/2,-0.1])
-            cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
+    // Two zip-tie pairs, rotated together with the converter footprint.
+    if (!adapter_rotate_90) {
+        for (sx=adapter_zip_positions) {
+            translate([adapter_origin[0]+sx,
+                       adapter_origin[1]-adapter_zip_slot_length-2,-0.1])
+                cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
+            translate([adapter_origin[0]+sx,
+                       adapter_origin[1]+adapter_footprint[1]+2,-0.1])
+                cube([adapter_zip_slot_width,adapter_zip_slot_length,plate_thickness+0.2]);
+        }
+    } else {
+        for (sy=adapter_zip_positions) {
+            translate([adapter_origin[0]-adapter_zip_slot_length-2,
+                       adapter_origin[1]+sy,-0.1])
+                cube([adapter_zip_slot_length,adapter_zip_slot_width,plate_thickness+0.2]);
+            translate([adapter_origin[0]+adapter_footprint[0]+2,
+                       adapter_origin[1]+sy,-0.1])
+                cube([adapter_zip_slot_length,adapter_zip_slot_width,plate_thickness+0.2]);
+        }
     }
 
     // DC module zip-tie slots, either side of module
@@ -185,14 +202,23 @@ if (dc_screw_mounts)
              dc_origin[1]+dc_hole_offset[1]+yy,
              plate_thickness,dc_post_height,dc_post_diameter,dc_screw_clearance);
 
-// Adapter's two shallow locating rails. Zip ties actually retain the body.
-// Rails intentionally end short of connector ends.
-for (dy=[-adapter_clearance-adapter_rail_thickness,
-          adapter_body[1]+adapter_clearance])
-    translate([adapter_origin[0]+adapter_rail_end_gap,
-               adapter_origin[1]+dy,plate_thickness])
-        cube([adapter_body[0]-2*adapter_rail_end_gap,
-              adapter_rail_thickness,adapter_rail_height]);
+// Adapter side rails. Both cable connector ends remain unobstructed.
+if (!adapter_rotate_90) {
+    for (dy=[-adapter_clearance-adapter_rail_thickness,
+              adapter_footprint[1]+adapter_clearance])
+        translate([adapter_origin[0]+adapter_rail_end_gap,
+                   adapter_origin[1]+dy,plate_thickness])
+            cube([adapter_footprint[0]-2*adapter_rail_end_gap,
+                  adapter_rail_thickness,adapter_rail_height]);
+} else {
+    for (dx=[-adapter_clearance-adapter_rail_thickness,
+              adapter_footprint[0]+adapter_clearance])
+        translate([adapter_origin[0]+dx,
+                   adapter_origin[1]+adapter_rail_end_gap,plate_thickness])
+            cube([adapter_rail_thickness,
+                  adapter_footprint[1]-2*adapter_rail_end_gap,
+                  adapter_rail_height]);
+}
 
 // Both adapter ends OPEN: route slim HDMI right-angle plug toward Pi and
 // USB-C cable toward goggles without a printed end wall.
